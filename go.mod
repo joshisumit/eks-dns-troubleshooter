@@ -3,12 +3,14 @@ module eks-dns-troubleshooter
 go 1.13
 
 require (
+	github.com/bogdanovich/dns_resolver v0.0.0-20170211073258-a8e42bc6a5b6
+	github.com/caddyserver/caddy v1.0.5
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/googleapis/gnostic v0.4.1 // indirect
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/json-iterator/go v1.1.9 // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/miekg/dns v1.1.29 // indirect
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5 // indirect

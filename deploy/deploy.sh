@@ -6,11 +6,11 @@ set -xe
 
 VERSION=$1
 
-kind get cluster
+kind get clusters
 
-rm -rf ./app
+rm -rf ../cmd/app
 
-GOOS=linux go build -o ./app .
+GOOS=linux go build -o ./app ../cmd/
 
 docker build -t in-cluster:$VERSION .
 
@@ -18,6 +18,9 @@ kind load docker-image in-cluster:$VERSION --name kind
 
 #Update the pod/deployment manifest with the latest docker image
 kubectl set image deployment/goclient-test in-cluster=in-cluster:$VERSION --record
+
+#sed -i s/^      - image: .*$/      - image: in-cluster:$VERSION/' deployment.yaml
+#kubectl apply -f deployment.yaml
 
 sleep 20
 kubectl get pods

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"time"
@@ -13,6 +14,7 @@ import (
 const logFilePath = "/var/log/eks-dns-tool.log"
 const version = "v0.1.0"
 
+//Clientset will be used for accessing multiple k8s groups
 var Clientset *kubernetes.Clientset
 
 func main() {
@@ -29,7 +31,7 @@ func main() {
 
 	log.SetOutput(mw)
 	log.SetFormatter(&log.JSONFormatter{})
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.DebugLevel)
 
 	log.Infof("Starting EKS DNS Troubleshooter %s ...", version)
 
@@ -47,8 +49,10 @@ func main() {
 	log.Infof("Running on Kubernetes %s", srvVersion.GitVersion)
 
 	//Check whether kube-dns service exist or not
+	cd := Coredns{}
 	var ns string
 	ns = "kube-system"
+	cd.namespace = ns
 
 	clusterIP, err := getClusterIP(ns)
 	if err != nil {
@@ -56,31 +60,43 @@ func main() {
 		//redirect to central suggestion function
 	}
 	log.Infof("kube-dns service ClusterIP: %s", clusterIP)
-	cd := Coredns{}
 	cd.clusterIP = clusterIP
-	log.Infof("Printing struct %+v", cd)
 
 	//Check endpoint exist or not
-	eips, err := checkServieEndpoint(ns)
+	eips, notReadyEIP, err := checkServieEndpoint(ns)
 	if err != nil {
 		log.Fatalf("kube-dns endpoints does not exist %s", err)
 		//redirect to central suggestion function
 	}
-	log.Infof("kube-dns endpoint IPs: %v", eips)
+	cd.endpointsIP = eips
+	cd.notReadyEndpoints = notReadyEIP
+	log.Infof("kube-dns endpoint IPs: %v length: %d cd.endspointsIP: %v", eips, len(eips), cd.endpointsIP)
+	for i, v := range cd.endpointsIP {
+		log.Infof("Printing EIP value %d: %s", i, v)
+	}
 
 	//Check recommenedVersion of CoreDNS pod is running or not
-	poVer, err := checkPodVersion(ns)
+	poVer, err := checkPodVersion(ns, &cd)
+	cd.recommVersion = "v1.6.6"
 	if err != nil {
 		log.Fatalf("Failed to detect coredns Pod version %s", err)
 	}
-	if recommVersion := "v1.6.6"; poVer == recommVersion {
+	if poVer == cd.recommVersion {
 		log.Infof("Recommended coredns version % is running", poVer)
 	} else {
 		log.Infof("Current coredns pods are running older version %s ", poVer)
-		log.Infof("Recommended version for EKS %s is %s", srvVersion.GitVersion, recommVersion)
+		log.Infof("Recommended version for EKS %s is %s", srvVersion.GitVersion, cd.recommVersion)
 		//Suggest to Upgrade coredns version with latest image
 	}
 
+	// Test DNS resolution
+	cd.testDNS()
+
+	//checkForErrorsInLogs
+	result, err := checkForErrorsInLogs(ns, &cd)
+	fmt.Println(result)
+
+	log.Infof("Printing struct %+v", cd)
 	for {
 		time.Sleep(1000)
 	}
