@@ -14,7 +14,6 @@ import (
 )
 
 const logFilePath = "/var/log/eks-dns-tool.log"
-const version = "v0.1.0"
 
 //Clientset will be used for accessing multiple k8s groups
 var Clientset *kubernetes.Clientset

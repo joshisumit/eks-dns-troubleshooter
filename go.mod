@@ -1,4 +1,4 @@
-module eks-dns-troubleshooter
+module github.com/joshisumit/eks-dns-troubleshooter
 
 go 1.13
 

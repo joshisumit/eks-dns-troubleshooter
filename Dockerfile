@@ -1,4 +1,4 @@
-FROM golang:alpine AS builder
+FROM golang:1.13.11-stretch AS builder
 
 WORKDIR /go/src/github.com/joshisumit/eks-dns-troubleshooter/
 
