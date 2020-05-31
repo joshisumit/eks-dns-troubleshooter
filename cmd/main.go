@@ -1,9 +1,9 @@
 package main
 
 import (
-	"eks-dns-troubleshooter/pkg/aws"
-	"eks-dns-troubleshooter/version"
 	"fmt"
+	"github.com/joshisumit/eks-dns-troubleshooter/pkg/aws"
+	"github.com/joshisumit/eks-dns-troubleshooter/version"
 	"io"
 	"os"
 	"time"
