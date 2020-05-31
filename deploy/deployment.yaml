@@ -87,7 +87,7 @@ spec:
         app: goclient-test
     spec:
       containers:
-      - image: in-cluster:v49
+      - image: sumitj/eks-dnshooter:v1
         name: in-cluster
         resources: {}
         env:

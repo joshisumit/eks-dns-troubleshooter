@@ -1,6 +1,8 @@
 package main
 
 import (
+	"eks-dns-troubleshooter/pkg/aws"
+	"eks-dns-troubleshooter/version"
 	"fmt"
 	"io"
 	"os"
@@ -33,7 +35,9 @@ func main() {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetLevel(log.DebugLevel)
 
-	log.Infof("Starting EKS DNS Troubleshooter %s ...", version)
+	//show version
+	log.Infof(version.ShowVersion())
+	//log.Infof("Starting EKS DNS Troubleshooter %s ...", version)
 
 	//Create Clientset
 	Clientset, err = CreateKubeClient()
@@ -95,6 +99,10 @@ func main() {
 	//checkForErrorsInLogs
 	result, err := checkForErrorsInLogs(ns, &cd)
 	fmt.Println(result)
+
+	// dd discoverClusterInfo
+	//aws.discoverClusterInfo()
+	aws.DiscoverClusterInfo()
 
 	log.Infof("Printing struct %+v", cd)
 	for {

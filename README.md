@@ -36,7 +36,12 @@ Fortunately, there is an easy fix for this problem: automate your network troubl
 PathSolutions TotalView is a fully-automated network root-cause troubleshooting platform that will thoroughly scan all layers of your network, right down to the physical layer.
 
 You’ll find that by using TotalView, you’ll actually gain a much deeper understanding of your network than you currently have. Plus, you’ll spend far less time searching for root cause issues when problems arise. You will therefore have more time to focus on business development.
+=============
 
+Tag Assistant helps to troubleshoot installation of various Google tags including Google Analytics, Google Tag Manager and more.
+Tag Assistant helps you verify that you have installed various Google tags correctly on your page. Just navigate to any page and Tag Assistant will tell you which tags are present, report any errors we find and suggest improvements that can be made to your implementation. Most Google tags are checked including Google Analytics, Adwords Conversion Tracking, Google Tag Manager and more.
+
+Use Google Tag Assistant Recording to record a typical user flow to and through your website and instantly validate, diagnose, and troubleshoot issues with your Google Analytics implementation. 
 
 ## With troubleshooter, you can:
 
@@ -44,6 +49,9 @@ You’ll find that by using TotalView, you’ll actually gain a much deeper unde
 ## Usecases
 - Enable logging for DNS query debugging
 - Saves time in troubleshooting, quickly identify the issue
+- SCenario: With that said, I do suggest to please update the self-managed nodes to similar version of your cluster which is 1.14, this will then remove the incompatibilities between you worker node and kube-proxy. To update a worker node, you can deploy a new worker node group, using the procedure on link [3]. ....
+
+Worker node and kube-proxy versions are different
 ## Demo
 
 

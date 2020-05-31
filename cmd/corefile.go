@@ -10,9 +10,25 @@ import (
 
 	"github.com/caddyserver/caddy/caddyfile"
 	log "github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
+
+//  patchStringValue specifies a patch operation for a string.
+type patchStringValue struct {
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value string `json:"value"`
+}
+
+type corednsPatchValue struct {
+	Data *corefileValue `json:"data"`
+}
+
+type corefileValue struct {
+	Corefile string `json:"Corefile"`
+}
 
 func getCorefile(ns string) (string, error) {
 	api := Clientset.CoreV1()
@@ -72,19 +88,89 @@ func enableLogPlugin(ns string, corefile string) (bool, error) {
 	ind := strings.IndexByte(corefile, '{')
 	log.Debugf("Index: %v", ind)
 
-	patch := corefile[:ind+1] + "\n    log" + corefile[ind+1:]
-	log.Infof("patch payload: %v", patch)
-	patchedConfigmap, err := api.ConfigMaps(ns).Patch("coredns", types.StrategicMergePatchType, []byte(patch), "")
+	payl := corefile[:ind+1] + "\n    log" + corefile[ind+1:]
+	log.Debugf("payl: %v", payl)
+
+	//form JSON file
+	patch := &corednsPatchValue{
+		Data: &corefileValue{Corefile: payl},
+	}
+
+	//patch := fmt.Sprintf(`{"data":{"Corefile":"+%s+"}}`, payl)
+	log.Infof("patch payload: %v", *patch)
+
+	// payload := []patchStringValue{{
+	// 	Op:    "replace",
+	// 	Path:  "/data",
+	// 	Value: patch,
+	// }}
+	// payloadBytes, _ := json.Marshal(payload)
+	// log.Debugf("payloadBytes : %v", payloadBytes)
+
+	patchedcm, err := json.Marshal(patch)
+	log.Debugf("pactchedcm JSON before: %v", string(patchedcm))
 	if err != nil {
-		log.Errorf("Failed to patch coredns configmap")
+		log.Errorf("Failed to parse the config")
+		return false, err
+	}
+
+	//
+	// corefileStanza, err := caddyfile.ToJSON([]byte(patch))
+	// if err != nil {
+	// 	log.Errorf("error: %v", err)
+	// 	return false, err
+	// }
+	// log.Infof("corefileStanza: %v", string(corefileStanza))
+
+	patchedConfigmap, err := api.ConfigMaps(ns).Patch("coredns", types.StrategicMergePatchType, patchedcm, "")
+	//patchedConfigmap, err := api.ConfigMaps(ns).Patch("coredns", types.StrategicMergePatchType, patchedcm, "")
+	//patchedConfigmap, err := api.ConfigMaps(ns).Patch("coredns", types.StrategicMergePatchType, []byte(patch), "")
+	if err != nil {
+		log.Errorf("Failed to patch coredns configmap: %v", patchedConfigmap)
+		log.Infof("Pacthed configmap data: %v", patchedConfigmap.Data)
 		return false, err
 	}
 	log.Infof("Successfully patched coredns configmap : %v", patchedConfigmap)
 	return true, nil
 }
 
-func checkLogs() {
+func checkLogs() error {
+	var err error
+	//Goal: Check for Errors in the DNS pod  -> fetch logs of all the running coredns pod logs and check errors and see queries are being receieved
+	//for p in $(kubectl get pods --namespace=kube-system -l k8s-app=kube-dns -o name); do kubectl logs --namespace=kube-system $p; done
 
+	//1. List all the pods running with kube-dns label in kube-system namespace
+	//https://127.0.0.1:32768/api/v1/namespaces/kube-system/pods?labelSelector=k8s-app%3Dkube-dns&limit=500
+
+	//2. Get pods logs
+	api := Clientset.CoreV1()
+	req := api.Pods("kube-system").GetLogs("coredns-6955765f44-9mnlp", &v1.PodLogOptions{})
+
+	log.Debugf("pod request object: %v", req)
+
+	// podLogs, err := req.Stream()
+	// if err != nil {
+	// 	log.Errorf("error in opening stream")
+	// }
+	// defer podLogs.Close()
+
+	// r := bufio.NewReader(podLogs)
+	// for {
+	// 	bytes, err := r.ReadBytes('\n')
+	// 	if _, err := out.Write(bytes); err != nil {
+	// 		return err
+	// 	}
+
+	// 	if err != nil {
+	// 		if err != io.EOF {
+	// 			return err
+	// 		}
+	// 		return nil
+	// 	}
+	// }
+
+	//log.Debugf("Pod logs are %v", podLogs)
+	return err
 }
 
 func checkForErrorsInLogs(ns string, cd *Coredns) (string, error) {
@@ -118,7 +204,8 @@ func checkForErrorsInLogs(ns string, cd *Coredns) (string, error) {
 		//If log plugin is already enabled, check the coredns pod logs for:
 		//1. Any errors
 		//2. DNS queries are being receieved/processed or not
-		checkLogs()
+		err = checkLogs()
+		log.Infof("Pod log retireval status: %v", err)
 	}
 
 	return "eee", err
