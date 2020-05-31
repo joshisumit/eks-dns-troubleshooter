@@ -26,11 +26,11 @@ all: container
 
 # Build go app
 build:
-        go build $(BUILD_FLAGS) -o $(BINARY_NAME) ./cmd/
+	go build $(BUILD_FLAGS) -o $(BINARY_NAME) ./cmd/
 
 # Build Docker Image
 container:
-        docker build -t $(IMAGE_NAME):$(TAG) .
+	docker build -t $(IMAGE_NAME):$(TAG) .
 
 push:
-        docker push $(IMAGE_NAME):$(TAG)
+	docker push $(IMAGE_NAME):$(TAG)
