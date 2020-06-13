@@ -6,6 +6,9 @@ import (
 	"github.com/joshisumit/eks-dns-troubleshooter/version"
 	"io"
 	"os"
+	"path"
+	"runtime"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -31,8 +34,16 @@ func main() {
 	mw := io.MultiWriter(os.Stdout, file)
 
 	log.SetOutput(mw)
-	log.SetFormatter(&log.JSONFormatter{})
+	formatter := &log.JSONFormatter{
+		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+			s := strings.Split(f.Function, ".")
+			funcName := s[len(s)-1]
+			return funcName, fmt.Sprintf("%s:%d", path.Base(f.File), f.Line)
+		},
+	}
+	log.SetFormatter(formatter)
 	log.SetLevel(log.DebugLevel)
+	log.SetReportCaller(true)
 
 	//show version
 	log.Infof(version.ShowVersion())
