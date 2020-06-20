@@ -9,6 +9,7 @@ require (
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/googleapis/gnostic v0.3.1 // indirect
+	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 	github.com/json-iterator/go v1.1.9 // indirect
 	github.com/miekg/dns v1.1.29 // indirect
 	github.com/sirupsen/logrus v1.6.0

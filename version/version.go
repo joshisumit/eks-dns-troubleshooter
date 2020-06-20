@@ -15,11 +15,12 @@ var (
 
 // showVersion returns information about the release.
 func ShowVersion() string {
-	return fmt.Sprintf(`-------------------------------------------------------------------------------
+	return fmt.Sprintf(`
+	-----------------------------------------------------------------------
 	EKS DNS Troubleshooter
 	Release:    %v
 	Build:      %v
 	Repository: %v
-	-------------------------------------------------------------------------------
+	-----------------------------------------------------------------------
 	`, RELEASE, COMMIT, REPO)
 }

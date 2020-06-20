@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jinzhu/copier"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -46,15 +47,16 @@ func main() {
 	log.SetReportCaller(true)
 
 	//show version
-	sum := diagnosisSummary{}
+	sum := DiagnosisSummary{}
 	fmt.Println(version.ShowVersion())
+	sum.Release, sum.Repo, sum.Commit = version.RELEASE, version.REPO, version.COMMIT
 	//log.Infof("Starting EKS DNS Troubleshooter %s ...", version)
 
 	//Create Clientset
 	Clientset, err = CreateKubeClient()
 	if err != nil {
 		log.Errorf("Failed to create clientset: %s", err)
-		sum.diagError = fmt.Sprintf("Failed to create clientset: %s", err)
+		sum.DiagError = fmt.Sprintf("Failed to create clientset: %s", err)
 		//sum.isDiagComplete = false
 		//sum.isDiagSuccessful = false
 		sum.printSummary()
@@ -64,9 +66,10 @@ func main() {
 	srvVersion, err := Clientset.ServerVersion()
 	if err != nil {
 		log.Errorf("Failed to fetch kubernetes version: %s", err)
-		sum.diagError = fmt.Sprintf("Failed to fetch kubernetes version: %s", err)
+		sum.DiagError = fmt.Sprintf("Failed to fetch kubernetes version: %s", err)
 		sum.printSummary()
 	}
+	sum.EksVersion = srvVersion.GitVersion
 	log.Infof("Running on Kubernetes %s", srvVersion.GitVersion)
 
 	//Check whether kube-dns service exist or not
@@ -78,63 +81,72 @@ func main() {
 	clusterIP, err := getClusterIP(ns)
 	if err != nil {
 		log.Errorf("kube-dns service does not exist %s", err)
-		sum.diagError = fmt.Sprintf("kube-dns service does not exist %s", err)
+		sum.DiagError = fmt.Sprintf("kube-dns service does not exist %s", err)
 		sum.printSummary()
 		//redirect to central suggestion function
 	}
 	log.Infof("kube-dns service ClusterIP: %s", clusterIP)
-	sum.kubeDnsServiceExist = make(map[string]interface{})
-	sum.kubeDnsServiceExist["clusterIP"] = clusterIP
-	sum.kubeDnsServiceExist["exist"] = true
+	//sum.kubeDnsServiceExist = make(map[string]interface{})
+	//sum.kubeDnsServiceExist["clusterIP"] = clusterIP
+	//sum.kubeDnsServiceExist["exist"] = true
 	cd.clusterIP = clusterIP
+
+	sum.Coredns = cd
 
 	//Check endpoint exist or not
 	eips, notReadyEIP, err := checkServieEndpoint(ns)
 	if err != nil {
 		log.Errorf("kube-dns endpoints does not exist %s", err)
-		sum.diagError = fmt.Sprintf("kube-dns endpoints does not exist %s", err)
+		sum.DiagError = fmt.Sprintf("kube-dns endpoints does not exist %s", err)
 		sum.printSummary()
 		//redirect to central suggestion function
 	}
 	cd.endpointsIP = eips
 	cd.notReadyEndpoints = notReadyEIP
-
-	sum.corednsEndpoints = make(map[string]interface{})
-	sum.corednsEndpoints["endpointsIP"] = eips
-	sum.corednsEndpoints["endpointsIP"] = notReadyEIP
+	sum.Coredns = cd
+	// sum.corednsEndpoints = make(map[string]interface{})
+	// sum.corednsEndpoints["endpointsIP"] = eips
+	// sum.corednsEndpoints["endpointsIP"] = notReadyEIP
 
 	log.Infof("kube-dns endpoint IPs: %v length: %d cd.endspointsIP: %v", eips, len(eips), cd.endpointsIP)
-	for i, v := range cd.endpointsIP {
-		log.Infof("Printing EIP value %d: %s", i, v)
-	}
+	// for i, v := range cd.endpointsIP {
+	// 	log.Infof("Printing EIP value %d: %s", i, v)
+	// }
 
 	//Check recommenedVersion of CoreDNS pod is running or not
 	poVer, err := checkPodVersion(ns, &cd)
 	cd.recommVersion = "v1.6.6"
 	if err != nil {
 		log.Errorf("Failed to detect coredns Pod version %s", err)
-		sum.diagError = fmt.Sprintf("Failed to detect coredns Pod version %s", err)
+		sum.DiagError = fmt.Sprintf("Failed to detect coredns Pod version %s", err)
 		sum.printSummary()
 	}
 	if poVer == cd.recommVersion {
 		log.Infof("Recommended coredns version %v is running", poVer)
-		sum.recommendedVersion = true
+		sum.RecommendedVersion = true
 	} else {
 		log.Infof("Current coredns pods are running older version %s ", poVer)
 		log.Infof("Recommended version for EKS %s is %s", srvVersion.GitVersion, cd.recommVersion)
 		//Suggest to Upgrade coredns version with latest image
 	}
+	sum.Coredns = cd
 
 	// Test DNS resolution
 	cd.testDNS()
+	sum.Coredns = cd
 
 	//checkForErrorsInLogs
+	//todo: return values
 	result, err := checkForErrorsInLogs(ns, &cd)
 	fmt.Println(result)
 
 	// dd discoverClusterInfo
 	//aws.discoverClusterInfo()
-	aws.DiscoverClusterInfo()
+	clusterInfo := aws.DiscoverClusterInfo()
+	copier.Copy(&sum.EksClusterChecks, clusterInfo)
+
+	sum.IsDiagSuccessful = true
+	sum.IsDiagComplete = true
 
 	log.Infof("Printing struct %+v", cd)
 	log.Infof("Printing Final diagnosis summary")

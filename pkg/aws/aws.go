@@ -41,7 +41,7 @@ type clusterSGRulesCheck struct {
 	outboundRule           map[string]string
 }
 
-type clusterInfo struct {
+type ClusterInfo struct {
 	instanceIdentityDocument ec2metadata.EC2InstanceIdentityDocument
 	region                   string
 	securityGroupIds         []string
@@ -53,7 +53,7 @@ type clusterInfo struct {
 	naclRulesCheck           bool
 }
 
-func getInstanceIdentityDocument() (*clusterInfo, error) {
+func getInstanceIdentityDocument() (*ClusterInfo, error) {
 	//create session
 	sess := session.Must(session.NewSession())
 	log.Printf("Session: %v\n", *sess)
@@ -73,12 +73,12 @@ func getInstanceIdentityDocument() (*clusterInfo, error) {
 			// Message from an error.
 			log.Println(err.Error())
 		}
-		return &clusterInfo{}, err
+		return &ClusterInfo{}, err
 	}
 	log.Printf("EC2 Instacne ID doc: %+v\n\n", doc)
 	log.Printf("Region from EC2 Instacne ID doc: %+v\n", doc.Region)
 
-	return &clusterInfo{
+	return &ClusterInfo{
 		instanceIdentityDocument: doc,
 	}, nil
 
@@ -140,7 +140,7 @@ func (e *ec2Client) getClusterName(resourceId string) (string, error) {
 	return clusterName, nil
 }
 
-func (w *clusterInfo) getAttachedSG() ([]string, error) {
+func (w *ClusterInfo) getAttachedSG() ([]string, error) {
 	//secGroupIds := make([]string, 0, 4)
 
 	metadataSession := session.Must(session.NewSession())
@@ -172,7 +172,7 @@ func (w *clusterInfo) getAttachedSG() ([]string, error) {
 }
 
 //getClusterDetails executes describeCluster API call and returns cluster details and ClusterSGID
-func (c *clusterInfo) getClusterDetails(clusterName string, region string) (*eks.Cluster, string, error) {
+func (c *ClusterInfo) getClusterDetails(clusterName string, region string) (*eks.Cluster, string, error) {
 	eksSession := session.Must(session.NewSession())
 	eksClient := eks.New(eksSession, aws.NewConfig().WithMaxRetries(maxRetries).WithRegion(region))
 
@@ -385,7 +385,7 @@ func makeRange(min, max int64) []int64 {
 }
 
 //DiscoverClusterInfo hkhkh
-func DiscoverClusterInfo() {
+func DiscoverClusterInfo() *ClusterInfo {
 	// wkr, err := getInstanceIdentityDocument()
 	// if err != nil {
 	// 	log.Errorf("Failed to fetch instanceID document")
@@ -432,7 +432,7 @@ func DiscoverClusterInfo() {
 	ec2Client, err := newEC2Client(region)
 	fmt.Printf("EC2 Client: %v %T\n\n", ec2Client, ec2Client)
 
-	wkr := clusterInfo{}
+	wkr := ClusterInfo{}
 	log.Infof("Fetching Clustername...")
 	clusterName, err := ec2Client.getClusterName(wkr1.instanceIdentityDocument.InstanceID)
 	if err != nil {
@@ -500,5 +500,7 @@ func DiscoverClusterInfo() {
 	log.Infof("NACL rules are: %v", isNaclOk)
 
 	log.Infof("worker node struct: %+v", wkr)
+
+	return &wkr
 
 }
