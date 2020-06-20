@@ -172,9 +172,9 @@ func (w *clusterInfo) getAttachedSG() ([]string, error) {
 }
 
 //getClusterDetails executes describeCluster API call and returns cluster details and ClusterSGID
-func (c *clusterInfo) getClusterDetails(clusterName string) (*eks.Cluster, string, error) {
+func (c *clusterInfo) getClusterDetails(clusterName string, region string) (*eks.Cluster, string, error) {
 	eksSession := session.Must(session.NewSession())
-	eksClient := eks.New(eksSession, aws.NewConfig().WithMaxRetries(maxRetries).WithRegion(c.region))
+	eksClient := eks.New(eksSession, aws.NewConfig().WithMaxRetries(maxRetries).WithRegion(region))
 
 	input := &eks.DescribeClusterInput{
 		Name: aws.String(clusterName),
@@ -453,7 +453,7 @@ func DiscoverClusterInfo() {
 
 	//Get EKS cluster details
 	log.Infof("Fetching details of EKS cluster %q using DescribeCluster API", clusterName)
-	wkr.clusterDetails, wkr.clusterSGID, err = wkr.getClusterDetails(clusterName)
+	wkr.clusterDetails, wkr.clusterSGID, err = wkr.getClusterDetails(clusterName, region)
 	if err != nil {
 		log.Printf("Unable to retrieve cluster Details %v\n", err)
 		//return err
@@ -499,6 +499,6 @@ func DiscoverClusterInfo() {
 	wkr.naclRulesCheck = isNaclOk
 	log.Infof("NACL rules are: %v", isNaclOk)
 
-	log.Infof("worker node struct: %v", wkr)
+	log.Infof("worker node struct: %+v", wkr)
 
 }

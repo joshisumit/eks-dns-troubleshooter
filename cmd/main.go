@@ -46,19 +46,26 @@ func main() {
 	log.SetReportCaller(true)
 
 	//show version
+	sum := diagnosisSummary{}
 	log.Infof(version.ShowVersion())
 	//log.Infof("Starting EKS DNS Troubleshooter %s ...", version)
 
 	//Create Clientset
 	Clientset, err = CreateKubeClient()
 	if err != nil {
-		log.Fatalf("Failed to create clientset: %s", err)
+		log.Errorf("Failed to create clientset: %s", err)
+		sum.diagError = fmt.Sprintf("Failed to create clientset: %s", err)
+		//sum.isDiagComplete = false
+		//sum.isDiagSuccessful = false
+		sum.printSummary()
 	}
 
 	//Detect cluster version
 	srvVersion, err := Clientset.ServerVersion()
 	if err != nil {
-		log.Fatalf("Failed to fetch kubernetes version: %s", err)
+		log.Errorf("Failed to fetch kubernetes version: %s", err)
+		sum.diagError = fmt.Sprintf("Failed to fetch kubernetes version: %s", err)
+		sum.printSummary()
 	}
 	log.Infof("Running on Kubernetes %s", srvVersion.GitVersion)
 
@@ -70,20 +77,32 @@ func main() {
 
 	clusterIP, err := getClusterIP(ns)
 	if err != nil {
-		log.Fatalf("kube-dns service does not exist %s", err)
+		log.Errorf("kube-dns service does not exist %s", err)
+		sum.diagError = fmt.Sprintf("kube-dns service does not exist %s", err)
+		sum.printSummary()
 		//redirect to central suggestion function
 	}
 	log.Infof("kube-dns service ClusterIP: %s", clusterIP)
+	sum.kubeDnsServiceExist = make(map[string]interface{})
+	sum.kubeDnsServiceExist["clusterIP"] = clusterIP
+	sum.kubeDnsServiceExist["exist"] = true
 	cd.clusterIP = clusterIP
 
 	//Check endpoint exist or not
 	eips, notReadyEIP, err := checkServieEndpoint(ns)
 	if err != nil {
-		log.Fatalf("kube-dns endpoints does not exist %s", err)
+		log.Errorf("kube-dns endpoints does not exist %s", err)
+		sum.diagError = fmt.Sprintf("kube-dns endpoints does not exist %s", err)
+		sum.printSummary()
 		//redirect to central suggestion function
 	}
 	cd.endpointsIP = eips
 	cd.notReadyEndpoints = notReadyEIP
+
+	sum.corednsEndpoints = make(map[string]interface{})
+	sum.corednsEndpoints["endpointsIP"] = eips
+	sum.corednsEndpoints["endpointsIP"] = notReadyEIP
+
 	log.Infof("kube-dns endpoint IPs: %v length: %d cd.endspointsIP: %v", eips, len(eips), cd.endpointsIP)
 	for i, v := range cd.endpointsIP {
 		log.Infof("Printing EIP value %d: %s", i, v)
@@ -93,10 +112,13 @@ func main() {
 	poVer, err := checkPodVersion(ns, &cd)
 	cd.recommVersion = "v1.6.6"
 	if err != nil {
-		log.Fatalf("Failed to detect coredns Pod version %s", err)
+		log.Errorf("Failed to detect coredns Pod version %s", err)
+		sum.diagError = fmt.Sprintf("Failed to detect coredns Pod version %s", err)
+		sum.printSummary()
 	}
 	if poVer == cd.recommVersion {
-		log.Infof("Recommended coredns version % is running", poVer)
+		log.Infof("Recommended coredns version %v is running", poVer)
+		sum.recommendedVersion = true
 	} else {
 		log.Infof("Current coredns pods are running older version %s ", poVer)
 		log.Infof("Recommended version for EKS %s is %s", srvVersion.GitVersion, cd.recommVersion)
