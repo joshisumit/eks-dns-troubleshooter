@@ -91,7 +91,7 @@ func main() {
 	//sum.kubeDnsServiceExist["exist"] = true
 	cd.clusterIP = clusterIP
 
-	sum.Coredns = cd
+	//sum.Coredns = cd
 
 	//Check endpoint exist or not
 	eips, notReadyEIP, err := checkServieEndpoint(ns)
@@ -103,7 +103,7 @@ func main() {
 	}
 	cd.endpointsIP = eips
 	cd.notReadyEndpoints = notReadyEIP
-	sum.Coredns = cd
+	//sum.Coredns = cd
 	// sum.corednsEndpoints = make(map[string]interface{})
 	// sum.corednsEndpoints["endpointsIP"] = eips
 	// sum.corednsEndpoints["endpointsIP"] = notReadyEIP
@@ -129,27 +129,35 @@ func main() {
 		log.Infof("Recommended version for EKS %s is %s", srvVersion.GitVersion, cd.recommVersion)
 		//Suggest to Upgrade coredns version with latest image
 	}
-	sum.Coredns = cd
+	//sum.Coredns = cd
 
 	// Test DNS resolution
 	cd.testDNS()
-	sum.Coredns = cd
+	//sum.Coredns = cd
 
 	//checkForErrorsInLogs
 	//todo: return values
 	result, err := checkForErrorsInLogs(ns, &cd)
 	fmt.Println(result)
 
-	// dd discoverClusterInfo
-	//aws.discoverClusterInfo()
+	//copy content of coredns struct to sum struct
+	err = copier.Copy(&sum.Coredns, &cd)
+	if err != nil {
+		log.Errorf("Error in deep copy of cd struct to Coredns struct")
+	}
+
 	clusterInfo := aws.DiscoverClusterInfo()
-	copier.Copy(&sum.EksClusterChecks, clusterInfo)
+	log.Debugf("Printing clusterInfo struct %+v", clusterInfo)
+	err = copier.Copy(&sum.ClusterInfo, clusterInfo)
+	if err != nil {
+		log.Errorf("Error in deep copy of clusterInfo struct to EksClusterChecks struct")
+	}
 
 	sum.IsDiagSuccessful = true
 	sum.IsDiagComplete = true
 
-	log.Infof("Printing struct %+v", cd)
-	log.Infof("Printing Final diagnosis summary")
+	log.Debugf("Printing coredns struct %+v", cd)
+	log.Infof("Printing Final diagnosis summary...")
 	sum.printSummary()
 
 	for {

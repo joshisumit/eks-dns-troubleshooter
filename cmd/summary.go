@@ -23,7 +23,7 @@ type DiagnosisSummary struct {
 	Repo               string
 	Commit             string
 	Coredns            `json:"corednsInfo"`
-	EksClusterChecks   aws.ClusterInfo `json:"eksClusterChecks"`
+	aws.ClusterInfo    `json:"eksClusterChecks"`
 	RecommendedVersion bool
 }
 
