@@ -32,6 +32,7 @@ DNS Resolution: [OK]
 
 func (ds diagnosisSummary) printSummary() {
 	//Generate the file
+	fmt.Println("Printing summary....")
 	f, err := os.Create(summaryFilePath)
 	if err != nil {
 		log.Fatalf("Failed to create summary file: %v, ", err)

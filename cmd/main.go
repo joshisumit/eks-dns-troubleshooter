@@ -47,7 +47,7 @@ func main() {
 
 	//show version
 	sum := diagnosisSummary{}
-	log.Infof(version.ShowVersion())
+	fmt.Println(version.ShowVersion())
 	//log.Infof("Starting EKS DNS Troubleshooter %s ...", version)
 
 	//Create Clientset
@@ -137,6 +137,9 @@ func main() {
 	aws.DiscoverClusterInfo()
 
 	log.Infof("Printing struct %+v", cd)
+	log.Infof("Printing Final diagnosis summary")
+	sum.printSummary()
+
 	for {
 		time.Sleep(1000)
 	}
