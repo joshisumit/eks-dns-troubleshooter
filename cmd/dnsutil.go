@@ -8,20 +8,20 @@ import (
 
 //Coredns struct sets all the properties of coredns
 type Coredns struct {
-	clusterIP         string
-	endpointsIP       []string
-	notReadyEndpoints []string
-	namespace         string
-	imageVersion      string
-	recommVersion     string
-	metrics           []string
-	replicas          int
-	corefile          string
-	dnstest           bool
-	resolvconf
-	hasNodeLocalCache bool
+	ClusterIP         string     `json:"clusterIP"`
+	EndpointsIP       []string   `json:"endpointsIP"`
+	NotReadyEndpoints []string   `json:"notReadyEndpoints"`
+	Namespace         string     `json:"namespace"`
+	ImageVersion      string     `json:"imageVersion"`
+	RecommVersion     string     `json:"recommendedVersion"`
+	Metrics           []string   `json:"metrics,omitempty"`
+	Replicas          int        `json:"replicas"`
+	Corefile          string     `json:"corefile"`
+	Dnstest           bool       `json:"dnstest"`
+	ResolvConf        ResolvConf `json:"resolvconf"`
+	HasNodeLocalCache bool       `json:"hasNodeLocalCache,omitempty"`
 	//nodeLocalCacheIP  string -> should be set manually to 169.254.20.10
-	hasErrorsInLogs map[bool]string
+	HasErrorsInLogs map[bool]string `json:"hasErrorsInLogs"`
 }
 
 func lookupIP(host string, server []string) bool {

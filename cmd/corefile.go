@@ -183,7 +183,7 @@ func checkForErrorsInLogs(ns string, cd *Coredns) (string, error) {
 		return "", err
 	}
 	log.Infof("Corefile content is %s", corefile)
-	cd.corefile = corefile
+	cd.Corefile = corefile
 
 	//2. Parse Corefile content to check if log plugin is enabled or not
 	isLogPluginEnabled, err := parseCorefile(corefile)

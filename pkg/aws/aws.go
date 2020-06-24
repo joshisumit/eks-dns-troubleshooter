@@ -36,21 +36,21 @@ type ec2Client struct {
 // clusterSGRulesCheck stores details of Cluster SG ID verification
 // Example: {isClusterSGRuleCorrect: true, inboundRule: {"isValid": "true", "details": "dfsdffd"}, outboundRule: {"isValid": "true", "details": "dfsdffd"}}
 type clusterSGRulesCheck struct {
-	isClusterSGRuleCorrect bool
-	inboundRule            map[string]string
-	outboundRule           map[string]string
+	IsClusterSGRuleCorrect bool
+	InboundRule            map[string]string
+	OutboundRule           map[string]string
 }
 
 type ClusterInfo struct {
-	instanceIdentityDocument ec2metadata.EC2InstanceIdentityDocument
-	region                   string
-	securityGroupIds         []string
-	clusterName              string
-	tagList                  []map[string]string
-	clusterDetails           *eks.Cluster
-	clusterSGID              string
-	sgRulesCheck             clusterSGRulesCheck
-	naclRulesCheck           bool
+	InstanceIdentityDocument ec2metadata.EC2InstanceIdentityDocument `json:"instanceIdentityDocument"`
+	Region                   string                                  `json:"region"`
+	SecurityGroupIds         []string                                `json:"securityGroupIds"`
+	ClusterName              string                                  `json:"clusterName"`
+	TagList                  []map[string]string                     `json:"tagList,omitempty"`
+	ClusterDetails           *eks.Cluster                            `json:"clusterDetails"`
+	ClusterSGID              string                                  `json:"clusterSecurityGroup"`
+	SgRulesCheck             clusterSGRulesCheck                     `json:"sgRulesCheck"`
+	NaclRulesCheck           bool                                    `json:"naclRulesCheck"`
 }
 
 func getInstanceIdentityDocument() (*ClusterInfo, error) {
@@ -79,7 +79,7 @@ func getInstanceIdentityDocument() (*ClusterInfo, error) {
 	log.Printf("Region from EC2 Instacne ID doc: %+v\n", doc.Region)
 
 	return &ClusterInfo{
-		instanceIdentityDocument: doc,
+		InstanceIdentityDocument: doc,
 	}, nil
 
 }
@@ -419,9 +419,9 @@ func DiscoverClusterInfo() *ClusterInfo {
 		log.Errorf("Failed to fetch instanceID document")
 	}
 	log.Infof("Worker node Info: %v", wkr1)
-	log.Infof("Worker node Info: %+v", wkr1.instanceIdentityDocument)
+	log.Infof("Worker node Info: %+v", wkr1.InstanceIdentityDocument)
 
-	region := wkr1.instanceIdentityDocument.Region
+	region := wkr1.InstanceIdentityDocument.Region
 	log.Infof("Region is: %v", region)
 
 	// err = getTags(region, wkr.instanceIdentityDocument.InstanceID)
@@ -434,12 +434,12 @@ func DiscoverClusterInfo() *ClusterInfo {
 
 	wkr := ClusterInfo{}
 	log.Infof("Fetching Clustername...")
-	clusterName, err := ec2Client.getClusterName(wkr1.instanceIdentityDocument.InstanceID)
+	clusterName, err := ec2Client.getClusterName(wkr1.InstanceIdentityDocument.InstanceID)
 	if err != nil {
 		log.Errorf(`Error finding required tag "kubernetes.io/cluster/clusterName" on EC2 instance : `, err)
 		//return err
 	}
-	wkr.clusterName = clusterName
+	wkr.ClusterName = clusterName
 	log.Infof("Clustername is :%v", clusterName)
 
 	log.Infof("Fetching SGs attached to an EC2 instance")
@@ -449,54 +449,54 @@ func DiscoverClusterInfo() *ClusterInfo {
 		//return err
 	}
 	log.Infof("SGs attached to instance: %v", sgID)
-	wkr.securityGroupIds = sgID
+	wkr.SecurityGroupIds = sgID
 
 	//Get EKS cluster details
 	log.Infof("Fetching details of EKS cluster %q using DescribeCluster API", clusterName)
-	wkr.clusterDetails, wkr.clusterSGID, err = wkr.getClusterDetails(clusterName, region)
+	wkr.ClusterDetails, wkr.ClusterSGID, err = wkr.getClusterDetails(clusterName, region)
 	if err != nil {
 		log.Printf("Unable to retrieve cluster Details %v\n", err)
 		//return err
 	}
-	log.Infof("details: %v %T", *wkr.clusterDetails, wkr.clusterDetails)
+	log.Infof("details: %v %T", *wkr.ClusterDetails, wkr.ClusterDetails)
 
 	log.Infof("Evaulating Cluster Security-Group ID")
-	inbound, outbound, err := verifyClusterSGRules(wkr.clusterSGID, region)
+	inbound, outbound, err := verifyClusterSGRules(wkr.ClusterSGID, region)
 	if err != nil {
 		log.Printf("Unable to evaluate the rules of Cluster SG %v\n", err)
 		//return err
 	}
 
 	//wkr.isClusterSGRulesCorrect = make(map[bool]string)
-	wkr.sgRulesCheck.inboundRule = make(map[string]string)
-	wkr.sgRulesCheck.outboundRule = make(map[string]string)
+	wkr.SgRulesCheck.InboundRule = make(map[string]string)
+	wkr.SgRulesCheck.OutboundRule = make(map[string]string)
 	if !inbound {
-		wkr.sgRulesCheck.isClusterSGRuleCorrect = false
-		wkr.sgRulesCheck.inboundRule["isValid"] = "false"
-		wkr.sgRulesCheck.inboundRule["details"] = fmt.Sprintf(`cluster Security Group %q is not configured correctly, 
+		wkr.SgRulesCheck.IsClusterSGRuleCorrect = false
+		wkr.SgRulesCheck.InboundRule["isValid"] = "false"
+		wkr.SgRulesCheck.InboundRule["details"] = fmt.Sprintf(`cluster Security Group %q is not configured correctly, 
 		please make sure that cluster Security Gorup has inbound rule which references itself...
-		Refer: https://docs.aws.amazon.com/eks/latest/userguide/sec-group-reqs.html#cluster-sg`, wkr.clusterSGID)
-		log.Infof("%v", wkr.sgRulesCheck)
+		Refer: https://docs.aws.amazon.com/eks/latest/userguide/sec-group-reqs.html#cluster-sg`, wkr.ClusterSGID)
+		log.Infof("%v", wkr.SgRulesCheck)
 	} else if !outbound {
-		wkr.sgRulesCheck.isClusterSGRuleCorrect = false
-		wkr.sgRulesCheck.outboundRule["isValid"] = "false"
-		wkr.sgRulesCheck.outboundRule["details"] = fmt.Sprintf(`cluster Security Group %q is not configured correctly, 
-		outbound rules are not allowing all traffic...For more details: https://docs.aws.amazon.com/eks/latest/userguide/sec-group-reqs.html#cluster-sg`, wkr.clusterSGID)
-		log.Infof("%v", wkr.sgRulesCheck)
+		wkr.SgRulesCheck.IsClusterSGRuleCorrect = false
+		wkr.SgRulesCheck.OutboundRule["isValid"] = "false"
+		wkr.SgRulesCheck.OutboundRule["details"] = fmt.Sprintf(`cluster Security Group %q is not configured correctly, 
+		outbound rules are not allowing all traffic...For more details: https://docs.aws.amazon.com/eks/latest/userguide/sec-group-reqs.html#cluster-sg`, wkr.ClusterSGID)
+		log.Infof("%v", wkr.SgRulesCheck)
 	} else {
-		wkr.sgRulesCheck.isClusterSGRuleCorrect = true
-		wkr.sgRulesCheck.inboundRule["isValid"] = "true"
-		wkr.sgRulesCheck.outboundRule["isValid"] = "true"
-		log.Infof("clustreSG %q is configured correctly, it references itself", wkr.clusterSGID)
-		log.Infof("%v", wkr.sgRulesCheck)
+		wkr.SgRulesCheck.IsClusterSGRuleCorrect = true
+		wkr.SgRulesCheck.InboundRule["isValid"] = "true"
+		wkr.SgRulesCheck.OutboundRule["isValid"] = "true"
+		log.Infof("clustreSG %q is configured correctly, it references itself", wkr.ClusterSGID)
+		log.Infof("%v", wkr.SgRulesCheck)
 	}
 
-	isNaclOk, err := verifyNaclRules(region, *wkr.clusterDetails.ResourcesVpcConfig.VpcId)
+	isNaclOk, err := verifyNaclRules(region, *wkr.ClusterDetails.ResourcesVpcConfig.VpcId)
 	if err != nil {
 		log.Errorf("Unable to retrieve NACL rules %v\n", err)
 		//return err
 	}
-	wkr.naclRulesCheck = isNaclOk
+	wkr.NaclRulesCheck = isNaclOk
 	log.Infof("NACL rules are: %v", isNaclOk)
 
 	log.Infof("worker node struct: %+v", wkr)

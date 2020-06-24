@@ -9,15 +9,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//resolvconf struct stores /etc/resolv.conf of a pod
-type resolvconf struct {
-	searchPath []string
-	nameserver []string
-	options    []string
-	ndots      int
+//ResolvConf struct stores /etc/resolv.conf of a pod
+type ResolvConf struct {
+	SearchPath []string
+	Nameserver []string
+	Options    []string
+	Ndots      int
 }
 
-func (rc *resolvconf) readResolvConf() error {
+func (rc *ResolvConf) readResolvConf() error {
 	f, err := os.Open("/etc/resolv.conf")
 	if err != nil {
 		log.Errorf("Failed to read /etc/resolv.conf file: %s", err)
@@ -33,17 +33,17 @@ func (rc *resolvconf) readResolvConf() error {
 		fields := strings.Fields(in.Text())
 
 		if fields[0] == "search" {
-			rc.searchPath = fields[1:]
+			rc.SearchPath = fields[1:]
 			continue
 		} else if fields[0] == "nameserver" {
-			rc.nameserver = fields[1:]
+			rc.Nameserver = fields[1:]
 			continue
 		} else {
-			rc.options = fields[1:]
-			for _, opt := range rc.options {
+			rc.Options = fields[1:]
+			for _, opt := range rc.Options {
 				tmp := strings.Split(opt, ":")
 				if tmp[0] == "ndots" {
-					rc.ndots, err = strconv.Atoi(tmp[1])
+					rc.Ndots, err = strconv.Atoi(tmp[1])
 					if err != nil {
 						return err
 					}

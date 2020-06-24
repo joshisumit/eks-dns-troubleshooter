@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jinzhu/copier"
+	//"github.com/jinzhu/copier"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -76,7 +76,7 @@ func main() {
 	cd := Coredns{}
 	var ns string
 	ns = "kube-system"
-	cd.namespace = ns
+	cd.Namespace = ns
 
 	clusterIP, err := getClusterIP(ns)
 	if err != nil {
@@ -89,7 +89,7 @@ func main() {
 	//sum.kubeDnsServiceExist = make(map[string]interface{})
 	//sum.kubeDnsServiceExist["clusterIP"] = clusterIP
 	//sum.kubeDnsServiceExist["exist"] = true
-	cd.clusterIP = clusterIP
+	cd.ClusterIP = clusterIP
 
 	//sum.Coredns = cd
 
@@ -101,32 +101,32 @@ func main() {
 		sum.printSummary()
 		//redirect to central suggestion function
 	}
-	cd.endpointsIP = eips
-	cd.notReadyEndpoints = notReadyEIP
+	cd.EndpointsIP = eips
+	cd.NotReadyEndpoints = notReadyEIP
 	//sum.Coredns = cd
 	// sum.corednsEndpoints = make(map[string]interface{})
 	// sum.corednsEndpoints["endpointsIP"] = eips
 	// sum.corednsEndpoints["endpointsIP"] = notReadyEIP
 
-	log.Infof("kube-dns endpoint IPs: %v length: %d cd.endspointsIP: %v", eips, len(eips), cd.endpointsIP)
+	log.Infof("kube-dns endpoint IPs: %v length: %d cd.endspointsIP: %v", eips, len(eips), cd.EndpointsIP)
 	// for i, v := range cd.endpointsIP {
 	// 	log.Infof("Printing EIP value %d: %s", i, v)
 	// }
 
 	//Check recommenedVersion of CoreDNS pod is running or not
 	poVer, err := checkPodVersion(ns, &cd)
-	cd.recommVersion = "v1.6.6"
+	cd.RecommVersion = "v1.6.6"
 	if err != nil {
 		log.Errorf("Failed to detect coredns Pod version %s", err)
 		sum.DiagError = fmt.Sprintf("Failed to detect coredns Pod version %s", err)
 		sum.printSummary()
 	}
-	if poVer == cd.recommVersion {
+	if poVer == cd.RecommVersion {
 		log.Infof("Recommended coredns version %v is running", poVer)
 		sum.RecommendedVersion = true
 	} else {
 		log.Infof("Current coredns pods are running older version %s ", poVer)
-		log.Infof("Recommended version for EKS %s is %s", srvVersion.GitVersion, cd.recommVersion)
+		log.Infof("Recommended version for EKS %s is %s", srvVersion.GitVersion, cd.RecommVersion)
 		//Suggest to Upgrade coredns version with latest image
 	}
 	//sum.Coredns = cd
@@ -141,17 +141,19 @@ func main() {
 	fmt.Println(result)
 
 	//copy content of coredns struct to sum struct
-	err = copier.Copy(&sum.Coredns, &cd)
-	if err != nil {
-		log.Errorf("Error in deep copy of cd struct to Coredns struct")
-	}
+	sum.Coredns = cd
+	// err = copier.Copy(&sum.Coredns, &cd)
+	// if err != nil {
+	// 	log.Errorf("Error in deep copy of cd struct to Coredns struct")
+	// }
 
 	clusterInfo := aws.DiscoverClusterInfo()
+	sum.ClusterInfo = *clusterInfo
 	log.Debugf("Printing clusterInfo struct %+v", clusterInfo)
-	err = copier.Copy(&sum.ClusterInfo, clusterInfo)
-	if err != nil {
-		log.Errorf("Error in deep copy of clusterInfo struct to EksClusterChecks struct")
-	}
+	// err = copier.Copy(&sum.ClusterInfo, clusterInfo)
+	// if err != nil {
+	// 	log.Errorf("Error in deep copy of clusterInfo struct to EksClusterChecks struct")
+	// }
 
 	sum.IsDiagSuccessful = true
 	sum.IsDiagComplete = true

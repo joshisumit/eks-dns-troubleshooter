@@ -75,7 +75,7 @@ func checkPodVersion(ns string, cd *Coredns) (string, error) {
 	image := strings.Split(img, ":")
 
 	name, tag := image[0], image[1]
-	cd.imageVersion = tag
+	cd.ImageVersion = tag
 
 	log.Infof("Image version: %s %s", name, tag)
 	return tag, err
@@ -89,23 +89,23 @@ func (cd *Coredns) testDNS() {
 
 	//1. readEtcResolvConf -> compare nameserver with ClusterIP
 	//nameserver either should be coredns clusterIP or nodeLocalcache DNS IP
-	rc := &resolvconf{}
+	rc := &ResolvConf{}
 	err := rc.readResolvConf()
 	if err != nil {
 		log.Errorf("Failed to read /etc/resolv.conf file: %s", err)
-		cd.dnstest = false
+		cd.Dnstest = false
 		return
 	}
-	cd.resolvconf = *rc
+	cd.ResolvConf = *rc
 	log.Infof("resolvconf values are: %+v", rc)
 
 	//2. Match nameserver in /etc/resolv.conf with ClusterIP ->it should match
 	//from the nameserver IP -> check its coredns or nodeLocalDNSCache
-	if rc.nameserver[0] == cd.clusterIP {
-		log.Infof("Pod's nameserver is matching to ClusterIP: %s", rc.nameserver[0])
-	} else if rc.nameserver[0] == "169.254.20.10" {
-		cd.hasNodeLocalCache = true
-		log.Infof("Pod's nameserver is matching to NodeLocal DNS Cache: %s", rc.nameserver[0])
+	if rc.Nameserver[0] == cd.ClusterIP {
+		log.Infof("Pod's nameserver is matching to ClusterIP: %s", rc.Nameserver[0])
+	} else if rc.Nameserver[0] == "169.254.20.10" {
+		cd.HasNodeLocalCache = true
+		log.Infof("Pod's nameserver is matching to NodeLocal DNS Cache: %s", rc.Nameserver[0])
 	} else {
 		log.Warnf("Pod's Nameserver is not set to Coredns clusterIP or NodeLocal Cache IP...Review the --cluster-dns parameter of kubelet or check dnsPolicy field of Pod")
 	}
@@ -118,8 +118,8 @@ func (cd *Coredns) testDNS() {
 	domains := []string{"amazon.com", "kubernetes.default.svc.cluster.local"}
 
 	nameservers := make([]string, 0, 3)
-	nameservers = append(nameservers, rc.nameserver...)
-	nameservers = append(nameservers, cd.endpointsIP[:2]...) //select only 2 endpoints
+	nameservers = append(nameservers, rc.Nameserver...)
+	nameservers = append(nameservers, cd.EndpointsIP[:2]...) //select only 2 endpoints
 
 	// queries := make(map[string][]string)
 
@@ -144,7 +144,7 @@ func (cd *Coredns) testDNS() {
 		}
 	}
 
-	cd.dnstest = success
-	log.Debugf("DNS test completed. Success: %t %t", cd.dnstest, success)
+	cd.Dnstest = success
+	log.Debugf("DNS test completed. Success: %t %t", cd.Dnstest, success)
 
 }
