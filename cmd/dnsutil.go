@@ -14,14 +14,14 @@ type Coredns struct {
 	Namespace         string     `json:"namespace"`
 	ImageVersion      string     `json:"imageVersion"`
 	RecommVersion     string     `json:"recommendedVersion"`
+	Dnstest           bool       `json:"dnstestResults"`
 	Metrics           []string   `json:"metrics,omitempty"`
 	Replicas          int        `json:"replicas"`
 	Corefile          string     `json:"corefile"`
-	Dnstest           bool       `json:"dnstest"`
 	ResolvConf        ResolvConf `json:"resolvconf"`
 	HasNodeLocalCache bool       `json:"hasNodeLocalCache,omitempty"`
 	//nodeLocalCacheIP  string -> should be set manually to 169.254.20.10
-	HasErrorsInLogs map[bool]string `json:"hasErrorsInLogs"`
+	//HasErrorsInLogs map[bool]string `json:"hasErrorsInLogs"` //todo: chnage it to map[string]interface{}
 }
 
 func lookupIP(host string, server []string) bool {

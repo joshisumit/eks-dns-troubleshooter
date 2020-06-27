@@ -42,15 +42,15 @@ type clusterSGRulesCheck struct {
 }
 
 type ClusterInfo struct {
-	InstanceIdentityDocument ec2metadata.EC2InstanceIdentityDocument `json:"instanceIdentityDocument"`
+	SgRulesCheck             clusterSGRulesCheck                     `json:"securityGroupChecks"`
+	NaclRulesCheck           bool                                    `json:"naclRulesCheck"`
 	Region                   string                                  `json:"region"`
 	SecurityGroupIds         []string                                `json:"securityGroupIds"`
 	ClusterName              string                                  `json:"clusterName"`
-	TagList                  []map[string]string                     `json:"tagList,omitempty"`
-	ClusterDetails           *eks.Cluster                            `json:"clusterDetails"`
 	ClusterSGID              string                                  `json:"clusterSecurityGroup"`
-	SgRulesCheck             clusterSGRulesCheck                     `json:"sgRulesCheck"`
-	NaclRulesCheck           bool                                    `json:"naclRulesCheck"`
+	TagList                  []map[string]string                     `json:"tagList,omitempty"`
+	InstanceIdentityDocument ec2metadata.EC2InstanceIdentityDocument `json:"instanceIdentityDocument"`
+	ClusterDetails           *eks.Cluster                            `json:"clusterDetails"`
 }
 
 func getInstanceIdentityDocument() (*ClusterInfo, error) {

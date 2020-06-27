@@ -4,6 +4,13 @@ import (
 	"fmt"
 )
 
+//DiagToolInfo stores information about diagnosis tool
+type DiagToolInfo struct {
+	Release string `json:"release"`
+	Repo    string `json:"repo"`
+	Commit  string `json:"commit"`
+}
+
 var (
 	// RELEASE returns the release version
 	RELEASE = "UNKNOWN"
