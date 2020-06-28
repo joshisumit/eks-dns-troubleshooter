@@ -1,68 +1,3 @@
-# EKS DNS troubleshooter
-
-EKS DNS troubleshooter is an automated DNS troubleshooting utility for EKS cluster. It can be used to test, validate and troubleshoot DNS issues in EKS cluster.
-
-This tool scans all the cluster configuration, performs DNS resolution and identifies the issue, then generates a diagnosis report in JSON format.
-
-Spend less time in finding a root cause, more on Important Stuff!
-
-## Scenarios
-Tool verifies the following scenarios to validate/troubleshoot DNS in EKS cluster:
-- Check if coredns pods are running and number of replicas
-- Recommended version of coredns pods are running (i.e. v1.6.6 as of now).
-- Verify coredns service (i.e. kube-dns) exist and its endpoints.
-- Performs DNS resolution against CoreDNS ClusterIP (e.g. 10.100.0.10) and individual Coredns pod IPs.
-- Detects if Node Local DNS cache is being used.
-- Verify that the inter-node communication is not blocked by a Security Group.
-- Verify EKS Cluster Security Group is configured correctly (Incorrect configs can prevent communication with coredns pods).
-- Verify Network Access Control List (NACL) rules are not blocking outbound TCP and UDP access on port 53 (which is required for DNS resolution).
-- Enable `log` plugin in Coredns Configmap for debugging and checks for errors in the Coredns pod logs
-
-## Usage
-Note: Tool supports EKS version 1.14 onwards
-1. Create an IAM policy and attach it to the Worker node IAM role.
-
-```
-wget https://raw.githubusercontent.com/joshisumit/eks-dns-troubleshooter/master/deploy/iam-policy.json
-
-aws iam put-role-policy --role-name $ROLE_NAME --policy-name EKSDnsDiagToolIAMPolicy --policy-document file://iam-policy.json
-```
-
-Here replace $ROLE_NAME with EKS worker node IAM role
-
-2. Deploy eks-dns-troubleshooter
-```
-kubectl apply -f https://raw.githubusercontent.com/joshisumit/eks-dns-troubleshooter/master/deploy/eks-dns-troubleshooter.yaml
-```
-
-3. Verify that pod is deployed
-```
-kubectl logs -l=app=eks-dns-troubleshooter
-```
-Should display output similar to the following.
-```
-time="2020-06-27T15:22:34Z" level=info msg="\n\t-----------------------------------------------------------------------\n\tEKS DNS Troubleshooter\n\tRelease:    v1.0.0\n\tBuild:      git-bc217f7\n\tRepository: git@github.com:joshisumit/eks-dns-troubleshooter.git\n\t-----------------------------------------------------------------------\n\t"
-{"file":"main.go:81","func":"main","level":"info","msg":"Running on Kubernetes v1.15.11-eks-af3caf","time":"2020-06-27T15:22:34Z"}
-{"file":"main.go:100","func":"main","level":"info","msg":"kube-dns service ClusterIP: 10.100.0.10","time":"2020-06-27T15:22:34Z"}
-{"file":"verify-configs.go:42","func":"checkServieEndpoint","level":"info","msg":"Endpoints addresses: {[{192.168.27.238  0xc0004488a0 \u0026ObjectReference{Kind:Pod,Namespace:kube-system,Name:coredns-6658f9f447-gm5sn,UID:75d7a6cf-4092-4501-a56f-d3c859cdc5d0,APIVersion:,ResourceVersion:36301646,FieldPath:,}} {192.168.5.208  0xc0004488b0 \u0026ObjectReference{Kind:Pod,Namespace:kube-system,Name:coredns-6658f9f447-gqqk2,UID:f1864697-db9d-460c-b219-d5fbbe7484b8,APIVersion:,ResourceVersion:36301561,FieldPath:,}}] [] [{dns 53 UDP} {dns-tcp 53 TCP}]}","time":"2020-06-27T15:22:34Z"}
-```
-Once pod is running it will validate DNS, takes 1-2 mins for generating diagnosis report.
-
-4. Exec into pod and fetch the diagnosis report
-
-``` 
-POD_NAME=$(kubectl get pods -l=app=eks-dns-troubleshooter -o jsonpath='{.items..metadata.name}')
-kubectl exec -ti $POD_NAME -- cat /var/log/eks-dns-diag-summary.log | jq
-```
-OR download the diagnosis report JSON file to your machine
-
-```
-kubectl exec -ti $POD_NAME -- cat /var/log/eks-dns-diag-summary.log > eks-dns-diag-summary.json
-```
-
-Sample diagnosis report in JSON format looks similar to the following:
-
-```
 {
     "diagnosisCompletion": true,
     "diagnosisToolInfo": {
@@ -87,7 +22,7 @@ Sample diagnosis report in JSON format looks similar to the following:
       "imageVersion": "v1.6.6",
       "recommendedVersion": "v1.6.6",
       "dnstestResults": true,
-      "replicas": 0,
+      "replicas": 2,
       "corefile": ".:53 {\n    log\n    errors\n    health\n    kubernetes cluster.local in-addr.arpa ip6.arpa {\n      pods insecure\n      upstream\n      fallthrough in-addr.arpa ip6.arpa\n    }\n    prometheus :9153\n    forward . /etc/resolv.conf\n    cache 30\n    loop\n    reload\n    loadbalance\n}\n",
       "resolvconf": {
         "SearchPath": [
@@ -205,13 +140,3 @@ Sample diagnosis report in JSON format looks similar to the following:
       }
     }
   }
-```
-
-
-
-
-## Contribute
-- More scenarios for DNS troubleshooting would be welcome.
-- Any tips/PR on how to make the code cleaner or more idiomatic would be welcome.
-
-

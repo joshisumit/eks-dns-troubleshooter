@@ -1,0 +1,17 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeNetworkAcls",
+                "ec2:DescribeTags",
+                "ec2:DescribeInstances",
+                "ec2:DescribeRouteTables",
+                "ec2:DescribeSecurityGroups",
+                "eks:DescribeCluster"
+            ],
+            "Resource": "*"
+        }
+    ]
+}

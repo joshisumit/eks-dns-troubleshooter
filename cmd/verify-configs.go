@@ -11,6 +11,7 @@ import (
 // 	return Clientset.ServerVersion()
 // }
 
+//getClusterIP
 func getClusterIP(ns string) (string, error) {
 	api := Clientset.CoreV1()
 
@@ -26,6 +27,7 @@ func getClusterIP(ns string) (string, error) {
 	return clusterIP, err
 }
 
+//checkServieEndpoint
 func checkServieEndpoint(ns string) ([]string, []string, error) {
 	api := Clientset.CoreV1()
 
@@ -56,7 +58,17 @@ func checkServieEndpoint(ns string) ([]string, []string, error) {
 	return eips, notReadyEIP, err
 }
 
-func checkPodVersion(ns string, cd *Coredns) (string, error) {
+// Int32Value returns the value of the int pointer passed in or
+// 0 if the pointer is nil.
+func Int32Value(i *int32) int32 {
+	if i != nil {
+		return *i
+	}
+	return 0
+}
+
+//checkPodVersion
+func checkPodVersion(ns string, cd *Coredns) (string, []string, error) {
 
 	//There are 2 replicas of coredns pods running:
 	//podNames are: x1 y1
@@ -68,7 +80,7 @@ func checkPodVersion(ns string, cd *Coredns) (string, error) {
 		log.Fatalf("Failed to check coredns deployment %s", err)
 	}
 
-	replicas := dep.Spec.Replicas
+	replicas := Int32Value(dep.Spec.Replicas)
 	log.Infof("There are %d replicas of coredns pods running:", replicas)
 
 	img := dep.Spec.Template.Spec.Containers[0].Image
@@ -78,7 +90,23 @@ func checkPodVersion(ns string, cd *Coredns) (string, error) {
 	cd.ImageVersion = tag
 
 	log.Infof("Image version: %s %s", name, tag)
-	return tag, err
+
+	//Get the pod names:
+	listOptions := metav1.ListOptions{
+		LabelSelector: "k8s-app=kube-dns",
+	}
+
+	podList, err := Clientset.CoreV1().Pods(ns).List(listOptions)
+	if err != nil {
+		log.Fatalf("Failed to check coredns pod List %s", err)
+	}
+
+	podNames := make([]string, 0)
+	for _, item := range podList.Items {
+		podNames = append(podNames, item.ObjectMeta.Name)
+	}
+
+	return tag, podNames, err
 }
 
 //testDNS tests the DNS resolution for differnt domain names...Just a simple DNS resolver based on => github.com/miekg/dns

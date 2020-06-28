@@ -17,11 +17,12 @@ type Coredns struct {
 	Dnstest           bool       `json:"dnstestResults"`
 	Metrics           []string   `json:"metrics,omitempty"`
 	Replicas          int        `json:"replicas"`
+	PodNamesList      []string   `json:"podNames"`
 	Corefile          string     `json:"corefile"`
 	ResolvConf        ResolvConf `json:"resolvconf"`
 	HasNodeLocalCache bool       `json:"hasNodeLocalCache,omitempty"`
 	//nodeLocalCacheIP  string -> should be set manually to 169.254.20.10
-	//HasErrorsInLogs map[bool]string `json:"hasErrorsInLogs"` //todo: chnage it to map[string]interface{}
+	ErrorsInCorednsLogs map[string]interface{} `json:"hasErrorsInLogs"`
 }
 
 func lookupIP(host string, server []string) bool {

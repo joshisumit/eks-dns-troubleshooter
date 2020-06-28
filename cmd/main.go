@@ -118,8 +118,9 @@ func main() {
 	log.Infof("kube-dns endpoint IPs: %v length: %d cd.endspointsIP: %v", eips, len(eips), cd.EndpointsIP)
 
 	//Check recommenedVersion of CoreDNS pod is running or not
-	poVer, err := checkPodVersion(ns, &cd)
+	poVer, podNamesList, err := checkPodVersion(ns, &cd)
 	cd.RecommVersion = "v1.6.6"
+	cd.PodNamesList = podNamesList
 	if err != nil {
 		log.Errorf("Failed to detect coredns Pod version %s", err)
 		sum.DiagError = fmt.Sprintf("Failed to detect coredns Pod version %s", err)
@@ -145,8 +146,11 @@ func main() {
 
 	//checkForErrorsInLogs
 	//todo: return values
-	result, err := checkForErrorsInLogs(ns, &cd)
-	fmt.Println(result)
+	log.Infof("Checking logs of coredns pods for further debugging")
+	err = checkForErrorsInLogs(ns, &cd)
+	if err != nil {
+		log.Errorf("Failed to check logs of coredns pods and enable log plugin. Reason: %v\n", err)
+	}
 
 	//copy content of coredns struct to sum struct
 	sum.Coredns = cd

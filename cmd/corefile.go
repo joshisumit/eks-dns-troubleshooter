@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"regexp"
 	"strings"
@@ -14,13 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
-
-//  patchStringValue specifies a patch operation for a string.
-type patchStringValue struct {
-	Op    string `json:"op"`
-	Path  string `json:"path"`
-	Value string `json:"value"`
-}
 
 type corednsPatchValue struct {
 	Data *corefileValue `json:"data"`
@@ -58,6 +52,8 @@ func parseCorefile(corefile string) (bool, error) {
 		return false, err
 	}
 
+	//currenty caddyfile is just parsing the corefile content and not doing anything else
+	//In future, can be used for understanding/parsing Corefile fields and decisions based on them
 	//Use caddyfile to parse corefile
 	serverBlocks, err := caddyfile.Parse("/tmp/corefile", bytes.NewReader([]byte(corefile)), nil)
 	if err != nil {
@@ -123,8 +119,6 @@ func enableLogPlugin(ns string, corefile string) (bool, error) {
 	// log.Infof("corefileStanza: %v", string(corefileStanza))
 
 	patchedConfigmap, err := api.ConfigMaps(ns).Patch("coredns", types.StrategicMergePatchType, patchedcm, "")
-	//patchedConfigmap, err := api.ConfigMaps(ns).Patch("coredns", types.StrategicMergePatchType, patchedcm, "")
-	//patchedConfigmap, err := api.ConfigMaps(ns).Patch("coredns", types.StrategicMergePatchType, []byte(patch), "")
 	if err != nil {
 		log.Errorf("Failed to patch coredns configmap: %v", patchedConfigmap)
 		log.Infof("Pacthed configmap data: %v", patchedConfigmap.Data)
@@ -134,53 +128,59 @@ func enableLogPlugin(ns string, corefile string) (bool, error) {
 	return true, nil
 }
 
-func checkLogs() error {
-	var err error
+func checkLogs(podNames []string) (map[string]interface{}, error) {
 	//Goal: Check for Errors in the DNS pod  -> fetch logs of all the running coredns pod logs and check errors and see queries are being receieved
 	//for p in $(kubectl get pods --namespace=kube-system -l k8s-app=kube-dns -o name); do kubectl logs --namespace=kube-system $p; done
 
 	//1. List all the pods running with kube-dns label in kube-system namespace
 	//https://127.0.0.1:32768/api/v1/namespaces/kube-system/pods?labelSelector=k8s-app%3Dkube-dns&limit=500
+	//kubectl logs -n kube-system --selector 'k8s-app=kube-dns' -> api/v1/namespaces/kube-system/pods?labelSelector=k8s-app=kube-dns
 
 	//2. Get pods logs
 	api := Clientset.CoreV1()
-	req := api.Pods("kube-system").GetLogs("coredns-6955765f44-9mnlp", &v1.PodLogOptions{})
+	req := api.Pods("kube-system").GetLogs(podNames[0], &v1.PodLogOptions{})
 
 	log.Debugf("pod request object: %v", req)
 
-	// podLogs, err := req.Stream()
-	// if err != nil {
-	// 	log.Errorf("error in opening stream")
-	// }
-	// defer podLogs.Close()
+	podLogs, err := req.Stream()
+	if err != nil {
+		log.Errorf("error in opening stream: %v", err)
+		return nil, fmt.Errorf("error in opening stream: %v", err)
+	}
+	defer podLogs.Close()
 
-	// r := bufio.NewReader(podLogs)
-	// for {
-	// 	bytes, err := r.ReadBytes('\n')
-	// 	if _, err := out.Write(bytes); err != nil {
-	// 		return err
-	// 	}
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return nil, fmt.Errorf("error in copy information from podLogs to buf")
+	}
+	logContent := buf.String()
+	log.Debugf("Pod logs are %v", logContent)
 
-	// 	if err != nil {
-	// 		if err != io.EOF {
-	// 			return err
-	// 		}
-	// 		return nil
-	// 	}
-	// }
+	//3. Check if seeing any errors in the logs
+	logResult := make(map[string]interface{})
+	re := regexp.MustCompile(`error|timeout|unreachable`)
+	errChecksInLogs := re.FindAllString(logContent, -1)
+	if len(errChecksInLogs) != 0 {
+		log.Debugf("Seeing errors in coredns logs")
+		logResult["errors"] = errChecksInLogs
+		logResult["errorsInLogs"] = true
+	} else {
+		log.Debugf("NO errors in coredns pod logs")
+		logResult["errorsInLogs"] = false
+	}
+	//4. todo: check if DNS queries are being recieved/processed by coredns
 
-	//log.Debugf("Pod logs are %v", podLogs)
-	return err
+	return logResult, err
 }
 
-func checkForErrorsInLogs(ns string, cd *Coredns) (string, error) {
-
+func checkForErrorsInLogs(ns string, cd *Coredns) error {
 	//1. Fetch the Corefile content
 	log.Infof("Retrieving Corefile from the coredns configmap...")
 	corefile, err := getCorefile(ns)
 	if err != nil {
 		log.Errorf("Failed to retrieve coredns configmap: %s", err)
-		return "", err
+		return fmt.Errorf("Failed to retrieve coredns configmap: %s", err)
 	}
 	log.Infof("Corefile content is %s", corefile)
 	cd.Corefile = corefile
@@ -189,7 +189,7 @@ func checkForErrorsInLogs(ns string, cd *Coredns) (string, error) {
 	isLogPluginEnabled, err := parseCorefile(corefile)
 	if err != nil {
 		log.Errorf("Failed to parse corefile: %s", err)
-		return "", err
+		return fmt.Errorf("Failed to parse corefile: %s", err)
 	}
 
 	//3. If log plugin is not enabled, enable it by updating/patching Configmap
@@ -197,16 +197,21 @@ func checkForErrorsInLogs(ns string, cd *Coredns) (string, error) {
 		result, err := enableLogPlugin(ns, corefile)
 		if err != nil {
 			log.Errorf("Failed to enable log plugin in coredns configmap: %v", err)
-			return "", err
+			return fmt.Errorf("Failed to enable log plugin in coredns configmap: %v", err)
 		}
 		log.Infof("updated configmap: %v", result)
 	} else {
 		//If log plugin is already enabled, check the coredns pod logs for:
 		//1. Any errors
 		//2. DNS queries are being receieved/processed or not
-		err = checkLogs()
+		errChecksInLogs, err := checkLogs(cd.PodNamesList)
+		if err != nil {
+			log.Errorf("Failed to check errors in logs: %v", err)
+			return fmt.Errorf("Failed to check errors in logs: %v", err)
+		}
+		cd.ErrorsInCorednsLogs = errChecksInLogs
 		log.Infof("Pod log retireval status: %v", err)
 	}
 
-	return "eee", err
+	return err
 }
