@@ -16,7 +16,7 @@ type Coredns struct {
 	RecommVersion     string     `json:"recommendedVersion"`
 	Dnstest           bool       `json:"dnstestResults"`
 	Metrics           []string   `json:"metrics,omitempty"`
-	Replicas          int        `json:"replicas"`
+	Replicas          int32      `json:"replicas"`
 	PodNamesList      []string   `json:"podNames"`
 	Corefile          string     `json:"corefile"`
 	ResolvConf        ResolvConf `json:"resolvconf"`

@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 )
 
-const summaryFilePath = "/var/log/eks-dns-diag-summary.log"
+const summaryFilePath = "/var/log/eks-dns-diag-summary.json"
 
 // DiagnosisSummary delivers a JSON-formatted final diagnostic summary, written to a file.
 // A complete example report that was generated on an uncaught error is provided in docs directory for reference.
@@ -72,7 +72,7 @@ func (ds *DiagnosisSummary) printSummary() error {
 		log.Errorf("Failed to write to summary file: %v", err)
 		return fmt.Errorf("Failed to write to summary file: %v", err)
 	}
-	fmt.Println("file written successfully")
+	fmt.Println("JSON file written successfully")
 
 	return nil
 }

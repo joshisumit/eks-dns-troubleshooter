@@ -68,7 +68,7 @@ func Int32Value(i *int32) int32 {
 }
 
 //checkPodVersion
-func checkPodVersion(ns string, cd *Coredns) (string, []string, error) {
+func checkPodVersion(ns string, cd *Coredns) (string, []string, int32, error) {
 
 	//There are 2 replicas of coredns pods running:
 	//podNames are: x1 y1
@@ -106,7 +106,7 @@ func checkPodVersion(ns string, cd *Coredns) (string, []string, error) {
 		podNames = append(podNames, item.ObjectMeta.Name)
 	}
 
-	return tag, podNames, err
+	return tag, podNames, replicas, err
 }
 
 //testDNS tests the DNS resolution for differnt domain names...Just a simple DNS resolver based on => github.com/miekg/dns

@@ -11,13 +11,16 @@ import (
 	"strings"
 	"time"
 
-	//"github.com/jinzhu/copier"
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
-const logFilePath = "/var/log/eks-dns-tool.log"
+const (
+	logFilePath   = "/var/log/eks-dns-tool.log"
+	sleepDuration = 86400
+	envLogLevel   = "EKS_DNS_LOGLEVEL"
+)
 
 //Clientset will be used for accessing multiple k8s groups
 var Clientset *kubernetes.Clientset
@@ -28,14 +31,14 @@ func main() {
 	//Set Logging based on a file
 	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to open log file for writing: %v", err)
 	}
 	defer file.Close()
 
 	mw := io.MultiWriter(os.Stdout, file)
 
 	log.SetOutput(mw)
-	log.Infoln(version.ShowVersion())
+
 	formatter := &log.JSONFormatter{
 		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
 			s := strings.Split(f.Function, ".")
@@ -43,27 +46,31 @@ func main() {
 			return funcName, fmt.Sprintf("%s:%d", path.Base(f.File), f.Line)
 		},
 	}
+
+	logLevel := strings.ToLower(os.Getenv(envLogLevel))
+	lvl, err := log.ParseLevel(logLevel)
+	if err != nil {
+		log.Errorf("not a valid level: %s", logLevel)
+		lvl = log.DebugLevel //defaultLogLevel
+	}
 	log.SetFormatter(formatter)
-	log.SetLevel(log.DebugLevel)
+	log.SetLevel(lvl)
 	log.SetReportCaller(true)
 
 	//show version
+	log.Infof(version.ShowVersion())
 	sum := DiagnosisSummary{}
 	sum.DiagToolInfo.Release, sum.DiagToolInfo.Repo, sum.DiagToolInfo.Commit = version.RELEASE, version.REPO, version.COMMIT
-	//log.Infof("Starting EKS DNS Troubleshooter %s ...", version)
 
 	//Create Clientset
 	Clientset, err = CreateKubeClient()
 	if err != nil {
-		log.Errorf("Failed to create clientset: %s", err)
 		sum.DiagError = fmt.Sprintf("Failed to create clientset: %s", err)
-		//sum.isDiagComplete = false
-		//sum.isDiagSuccessful = false
 		err = sum.printSummary()
 		if err != nil {
-			log.Errorf("Failed to printSummary: %v", err)
-			//return or call other function
+			log.Fatalf("Failed to printSummary: %v", err)
 		}
+		log.Fatalf("Failed to create clientset: %s", err)
 	}
 
 	//Detect cluster version
@@ -82,20 +89,19 @@ func main() {
 
 	//Check whether kube-dns service exist or not
 	cd := Coredns{}
-	var ns string
-	ns = "kube-system"
+
+	ns := "kube-system"
 	cd.Namespace = ns
 
 	clusterIP, err := getClusterIP(ns)
 	if err != nil {
 		log.Errorf("kube-dns service does not exist %s", err)
-		sum.DiagError = fmt.Sprintf("kube-dns service does not exist %s", err)
+		sum.DiagError = fmt.Sprintf("kube-dns service does not exist %s. Create the service and rerun the tool again", err)
 		err = sum.printSummary()
 		if err != nil {
 			log.Errorf("Failed to printSummary: %v", err)
-			//return or call other function
 		}
-		//redirect to central suggestion function
+		mockSleep(1)
 	}
 	log.Infof("kube-dns service ClusterIP: %s", clusterIP)
 	cd.ClusterIP = clusterIP
@@ -108,9 +114,8 @@ func main() {
 		err = sum.printSummary()
 		if err != nil {
 			log.Errorf("Failed to printSummary: %v", err)
-			//return or call other function
 		}
-		//redirect to central suggestion function
+		mockSleep(1)
 	}
 	cd.EndpointsIP = eips
 	cd.NotReadyEndpoints = notReadyEIP
@@ -118,17 +123,18 @@ func main() {
 	log.Infof("kube-dns endpoint IPs: %v length: %d cd.endspointsIP: %v", eips, len(eips), cd.EndpointsIP)
 
 	//Check recommenedVersion of CoreDNS pod is running or not
-	poVer, podNamesList, err := checkPodVersion(ns, &cd)
+	poVer, podNamesList, replicas, err := checkPodVersion(ns, &cd)
 	cd.RecommVersion = "v1.6.6"
 	cd.PodNamesList = podNamesList
+	cd.Replicas = replicas
 	if err != nil {
 		log.Errorf("Failed to detect coredns Pod version %s", err)
 		sum.DiagError = fmt.Sprintf("Failed to detect coredns Pod version %s", err)
 		err = sum.printSummary()
 		if err != nil {
 			log.Errorf("Failed to printSummary: %v", err)
-			//return or call other function
 		}
+		mockSleep(1)
 	}
 	if poVer == cd.RecommVersion {
 		log.Infof("Recommended coredns version %v is running", poVer)
@@ -138,14 +144,11 @@ func main() {
 		log.Infof("Recommended version for EKS %s is %s", srvVersion.GitVersion, cd.RecommVersion)
 		//Suggest to Upgrade coredns version with latest image
 	}
-	//sum.Coredns = cd
 
 	// Test DNS resolution
 	cd.testDNS()
-	//sum.Coredns = cd
 
 	//checkForErrorsInLogs
-	//todo: return values
 	log.Infof("Checking logs of coredns pods for further debugging")
 	err = checkForErrorsInLogs(ns, &cd)
 	if err != nil {
@@ -167,12 +170,13 @@ func main() {
 	err = sum.printSummary()
 	if err != nil {
 		log.Errorf("Failed to printSummary: %v", err)
-		//return or call other function
 	}
 
-	for {
-		time.Sleep(1000)
-	}
+	log.Infof("DNS Diagnosis completed. Please check diagnosis report in %v file.", summaryFilePath)
+
+	mockSleep(0)
+	//time.Sleep(sleepDuration)
+
 }
 
 //CreateKubeClient returns ClientSet
@@ -191,4 +195,9 @@ func CreateKubeClient() (*kubernetes.Clientset, error) {
 		return nil, err
 	}
 	return Clientset, err
+}
+
+func mockSleep(exitCode int) {
+	time.Sleep(sleepDuration)
+	os.Exit(exitCode)
 }

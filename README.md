@@ -19,7 +19,7 @@ Tool verifies the following scenarios to validate/troubleshoot DNS in EKS cluste
 - Enable `log` plugin in Coredns Configmap for debugging and checks for errors in the Coredns pod logs
 
 ## Usage
-Note: Tool supports EKS version 1.14 onwards
+
 1. Create an IAM policy and attach it to the Worker node IAM role.
 
 ```
@@ -45,19 +45,21 @@ time="2020-06-27T15:22:34Z" level=info msg="\n\t--------------------------------
 {"file":"main.go:81","func":"main","level":"info","msg":"Running on Kubernetes v1.15.11-eks-af3caf","time":"2020-06-27T15:22:34Z"}
 {"file":"main.go:100","func":"main","level":"info","msg":"kube-dns service ClusterIP: 10.100.0.10","time":"2020-06-27T15:22:34Z"}
 {"file":"verify-configs.go:42","func":"checkServieEndpoint","level":"info","msg":"Endpoints addresses: {[{192.168.27.238  0xc0004488a0 \u0026ObjectReference{Kind:Pod,Namespace:kube-system,Name:coredns-6658f9f447-gm5sn,UID:75d7a6cf-4092-4501-a56f-d3c859cdc5d0,APIVersion:,ResourceVersion:36301646,FieldPath:,}} {192.168.5.208  0xc0004488b0 \u0026ObjectReference{Kind:Pod,Namespace:kube-system,Name:coredns-6658f9f447-gqqk2,UID:f1864697-db9d-460c-b219-d5fbbe7484b8,APIVersion:,ResourceVersion:36301561,FieldPath:,}}] [] [{dns 53 UDP} {dns-tcp 53 TCP}]}","time":"2020-06-27T15:22:34Z"}
+...
+{"file":"main.go:173","func":"main","level":"info","msg":"DNS Diagnosis completed. Please check diagnosis report in /var/log/eks-dns-diag-summary.json file.","time":"2020-06-27T15:23:34Z"}
 ```
-Once pod is running it will validate DNS, takes 1-2 mins for generating diagnosis report.
+Once pod is running it will validate and troubleshoot DNS, which will take around 2 mins and then it will generate the diagnosis report in the JSON format (last line in the above log excerpt).
 
 4. Exec into pod and fetch the diagnosis report
 
 ``` 
 POD_NAME=$(kubectl get pods -l=app=eks-dns-troubleshooter -o jsonpath='{.items..metadata.name}')
-kubectl exec -ti $POD_NAME -- cat /var/log/eks-dns-diag-summary.log | jq
+kubectl exec -ti $POD_NAME -- cat /var/log/eks-dns-diag-summary.json | jq
 ```
-OR download the diagnosis report JSON file to your machine
+OR download the diagnosis report JSON file locally
 
 ```
-kubectl exec -ti $POD_NAME -- cat /var/log/eks-dns-diag-summary.log > eks-dns-diag-summary.json
+kubectl exec -ti $POD_NAME -- cat /var/log/eks-dns-diag-summary.json > eks-dns-diag-summary.json
 ```
 
 Sample diagnosis report in JSON format looks similar to the following:
@@ -87,7 +89,11 @@ Sample diagnosis report in JSON format looks similar to the following:
       "imageVersion": "v1.6.6",
       "recommendedVersion": "v1.6.6",
       "dnstestResults": true,
-      "replicas": 0,
+      "replicas": 2,
+      "podNames": [
+        "coredns-76f4cb57b4-25x8d",
+        "coredns-76f4cb57b4-2vs9w"
+      ],
       "corefile": ".:53 {\n    log\n    errors\n    health\n    kubernetes cluster.local in-addr.arpa ip6.arpa {\n      pods insecure\n      upstream\n      fallthrough in-addr.arpa ip6.arpa\n    }\n    prometheus :9153\n    forward . /etc/resolv.conf\n    cache 30\n    loop\n    reload\n    loadbalance\n}\n",
       "resolvconf": {
         "SearchPath": [
@@ -208,10 +214,18 @@ Sample diagnosis report in JSON format looks similar to the following:
 ```
 
 
-
+## Notes
+- Tool tested for EKS version 1.14 onwards
+- Two files are generated inside a pod:
+  1.  `/var/log/eks-dns-tool.log` - Tool execution logs which can be used for debugging purpose
+  2.  `/var/log/eks-dns-diag-summary.json` - Final Diagnosis result in JSON format
+- Once diagnosis is complete, pod will continue to run.
+- To rerun the troubleshooting after a diagnosis, exec into running pod and rerun the tool again. Something like:
+    `kubectl exec -ti $POD_NAME -- /app/eks-dnshooter`
+- Docker image includes common network troubleshooting utility like curl, dig, nslookup etc.
 
 ## Contribute
-- More scenarios for DNS troubleshooting would be welcome.
 - Any tips/PR on how to make the code cleaner or more idiomatic would be welcome.
+- More scenarios for DNS troubleshooting would be welcome.
 
 

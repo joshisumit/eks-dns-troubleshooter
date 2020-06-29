@@ -200,18 +200,17 @@ func checkForErrorsInLogs(ns string, cd *Coredns) error {
 			return fmt.Errorf("Failed to enable log plugin in coredns configmap: %v", err)
 		}
 		log.Infof("updated configmap: %v", result)
-	} else {
-		//If log plugin is already enabled, check the coredns pod logs for:
-		//1. Any errors
-		//2. DNS queries are being receieved/processed or not
-		errChecksInLogs, err := checkLogs(cd.PodNamesList)
-		if err != nil {
-			log.Errorf("Failed to check errors in logs: %v", err)
-			return fmt.Errorf("Failed to check errors in logs: %v", err)
-		}
-		cd.ErrorsInCorednsLogs = errChecksInLogs
-		log.Infof("Pod log retireval status: %v", err)
 	}
+	//If log plugin is already enabled, check the coredns pod logs for:
+	//1. Any errors
+	//2. DNS queries are being receieved/processed or not
+	errChecksInLogs, err := checkLogs(cd.PodNamesList)
+	if err != nil {
+		log.Errorf("Failed to check errors in logs: %v", err)
+		return fmt.Errorf("Failed to check errors in logs: %v", err)
+	}
+	cd.ErrorsInCorednsLogs = errChecksInLogs
+	log.Infof("Pod log retireval status: %v", err)
 
 	return err
 }
