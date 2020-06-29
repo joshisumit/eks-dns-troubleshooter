@@ -41,6 +41,7 @@ type clusterSGRulesCheck struct {
 	OutboundRule           map[string]string
 }
 
+//ClusterInfo stores details of EKS cluster
 type ClusterInfo struct {
 	SgRulesCheck             clusterSGRulesCheck                     `json:"securityGroupChecks"`
 	NaclRulesCheck           bool                                    `json:"naclRulesCheck"`
@@ -172,7 +173,7 @@ func (w *ClusterInfo) getAttachedSG() ([]string, error) {
 }
 
 //getClusterDetails executes describeCluster API call and returns cluster details and ClusterSGID
-func (c *ClusterInfo) getClusterDetails(clusterName string, region string) (*eks.Cluster, string, error) {
+func (w *ClusterInfo) getClusterDetails(clusterName string, region string) (*eks.Cluster, string, error) {
 	eksSession := session.Must(session.NewSession())
 	eksClient := eks.New(eksSession, aws.NewConfig().WithMaxRetries(maxRetries).WithRegion(region))
 
@@ -337,8 +338,8 @@ func verifyNaclRules(region string, vpcid string) (bool, error) {
 
 	if len(nacls) > 0 {
 		for _, nacl := range nacls {
-			nacl_id, entries := nacl.NetworkAclId, nacl.Entries
-			log.Infof("Evaulating NACL: %v\n\n", aws.StringValue(nacl_id))
+			naclID, entries := nacl.NetworkAclId, nacl.Entries
+			log.Infof("Evaluating NACL: %v\n\n", aws.StringValue(naclID))
 			for _, rule := range entries {
 				//ony check egress rules if they allow outbound access on port 53
 				if aws.BoolValue(rule.Egress) {
@@ -370,7 +371,7 @@ func verifyNaclRules(region string, vpcid string) (bool, error) {
 	if !isPort53EgressAllowed {
 		log.Infof("NACL rules are not allowing egress for port 53")
 	}
-	//nacl_id, entries := nacls[0].NetworkAclId, nacls[0].Entries
+	//naclID, entries := nacls[0].NetworkAclId, nacls[0].Entries
 
 	return isPort53EgressAllowed, nil
 }
@@ -429,7 +430,7 @@ func DiscoverClusterInfo() *ClusterInfo {
 	// 	log.Errorf("Failed to fetch tags of an instance : ", err)
 	// }
 
-	ec2Client, err := newEC2Client(region)
+	ec2Client, _ := newEC2Client(region)
 	fmt.Printf("EC2 Client: %v %T\n\n", ec2Client, ec2Client)
 
 	wkr := ClusterInfo{}
@@ -460,7 +461,7 @@ func DiscoverClusterInfo() *ClusterInfo {
 	}
 	log.Infof("details: %v %T", *wkr.ClusterDetails, wkr.ClusterDetails)
 
-	log.Infof("Evaulating Cluster Security-Group ID")
+	log.Infof("Evaluating Cluster Security-Group ID")
 	inbound, outbound, err := verifyClusterSGRules(wkr.ClusterSGID, region)
 	if err != nil {
 		log.Printf("Unable to evaluate the rules of Cluster SG %v\n", err)

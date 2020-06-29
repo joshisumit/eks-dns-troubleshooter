@@ -109,7 +109,7 @@ func checkPodVersion(ns string, cd *Coredns) (string, []string, int32, error) {
 	return tag, podNames, replicas, err
 }
 
-//testDNS tests the DNS resolution for differnt domain names...Just a simple DNS resolver based on => github.com/miekg/dns
+//testDNS tests the DNS resolution for different domain names...Just a simple DNS resolver based on => github.com/miekg/dns
 //It tests the DNS queries against ClusterIP and individual PodIPs (i.e endpoint IPs)
 //returns (bool, []byte, error)
 func (cd *Coredns) testDNS() {
@@ -165,7 +165,7 @@ func (cd *Coredns) testDNS() {
 		for _, ns := range nameservers {
 			success = lookupIP(dom, []string{ns})
 			if success {
-				log.Infof("DNS queries suceeded for domain: %s server: %v", dom, ns)
+				log.Infof("DNS queries succeeded for domain: %s server: %v", dom, ns)
 			} else {
 				log.Errorf("DNS queries failed for domain: %s server: %v", dom, ns)
 			}

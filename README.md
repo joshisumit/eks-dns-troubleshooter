@@ -1,5 +1,8 @@
 # EKS DNS troubleshooter
 
+[![Go Report](https://goreportcard.com/badge/github.com/joshisumit/eks-dns-troubleshooter)](https://goreportcard.com/badge/github.com/joshisumit/eks-dns-troubleshooter)
+
+
 EKS DNS troubleshooter is an automated DNS troubleshooting utility for EKS cluster. It can be used to test, validate and troubleshoot DNS issues in EKS cluster.
 
 This tool scans all the cluster configuration, performs DNS resolution and identifies the issue, then generates a diagnosis report in JSON format.

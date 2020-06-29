@@ -56,7 +56,7 @@ func lookupIP(host string, server []string) bool {
 		log.Errorf("DNS query failed %d times", f)
 		success = false
 	} else {
-		log.Infof("DNS queries succeded %d times", s)
+		log.Infof("DNS queries succeeded %d times", s)
 		success = true
 	}
 

@@ -101,7 +101,7 @@ func main() {
 		if err != nil {
 			log.Errorf("Failed to printSummary: %v", err)
 		}
-		mockSleep(1)
+		mockSleep()
 	}
 	log.Infof("kube-dns service ClusterIP: %s", clusterIP)
 	cd.ClusterIP = clusterIP
@@ -115,7 +115,7 @@ func main() {
 		if err != nil {
 			log.Errorf("Failed to printSummary: %v", err)
 		}
-		mockSleep(1)
+		mockSleep()
 	}
 	cd.EndpointsIP = eips
 	cd.NotReadyEndpoints = notReadyEIP
@@ -134,7 +134,7 @@ func main() {
 		if err != nil {
 			log.Errorf("Failed to printSummary: %v", err)
 		}
-		mockSleep(1)
+		mockSleep()
 	}
 	if poVer == cd.RecommVersion {
 		log.Infof("Recommended coredns version %v is running", poVer)
@@ -174,7 +174,7 @@ func main() {
 
 	log.Infof("DNS Diagnosis completed. Please check diagnosis report in %v file.", summaryFilePath)
 
-	mockSleep(0)
+	mockSleep()
 	//time.Sleep(sleepDuration)
 
 }
@@ -197,7 +197,7 @@ func CreateKubeClient() (*kubernetes.Clientset, error) {
 	return Clientset, err
 }
 
-func mockSleep(exitCode int) {
-	time.Sleep(sleepDuration)
-	os.Exit(exitCode)
+func mockSleep() {
+	time.Sleep(sleepDuration * time.Second)
+	//os.Exit(exitCode)
 }

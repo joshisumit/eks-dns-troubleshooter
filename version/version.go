@@ -20,7 +20,7 @@ var (
 	COMMIT = "UNKNOWN"
 )
 
-// showVersion returns information about the release.
+// ShowVersion returns information about the release.
 func ShowVersion() string {
 	return fmt.Sprintf(`
 	-----------------------------------------------------------------------

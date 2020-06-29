@@ -155,7 +155,7 @@ func checkLogs(podNames []string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("error in copy information from podLogs to buf")
 	}
 	logContent := buf.String()
-	log.Debugf("Pod logs are %v", logContent)
+	//log.Debugf("Pod logs are %v", logContent)
 
 	//3. Check if seeing any errors in the logs
 	logResult := make(map[string]interface{})
@@ -169,7 +169,7 @@ func checkLogs(podNames []string) (map[string]interface{}, error) {
 		log.Debugf("NO errors in coredns pod logs")
 		logResult["errorsInLogs"] = false
 	}
-	//4. todo: check if DNS queries are being recieved/processed by coredns
+	//4. todo: check if DNS queries are being received/processed by coredns
 
 	return logResult, err
 }
