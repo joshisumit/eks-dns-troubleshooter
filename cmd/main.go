@@ -26,12 +26,16 @@ const (
 var Clientset *kubernetes.Clientset
 
 func main() {
+	os.Exit(_main())
+}
 
+func _main() int {
 	//0. Logging - write same logs to stdout and file simultaneously
 	//Set Logging based on a file
 	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Fatalf("Failed to open log file for writing: %v", err)
+		log.Errorf("Failed to open log file for writing: %v", err)
+		return 1
 	}
 	defer file.Close()
 
@@ -68,21 +72,23 @@ func main() {
 		sum.DiagError = fmt.Sprintf("Failed to create clientset: %s", err)
 		err = sum.printSummary()
 		if err != nil {
-			log.Fatalf("Failed to printSummary: %v", err)
+			log.Errorf("Failed to printSummary: %v", err)
 		}
-		log.Fatalf("Failed to create clientset: %s", err)
+		log.Errorf("Failed to create clientset: %s", err)
+		return 1
 	}
 
 	//Detect cluster version
 	srvVersion, err := Clientset.ServerVersion()
 	if err != nil {
-		log.Errorf("Failed to fetch kubernetes version: %s", err)
+		log.Errorf("Failed to fetch kubernetes version Error: %s", err)
 		sum.DiagError = fmt.Sprintf("Failed to fetch kubernetes version: %s", err)
 		err = sum.printSummary()
 		if err != nil {
 			log.Errorf("Failed to printSummary: %v", err)
-			//return or call other function
 		}
+		time.Sleep(sleepDuration * time.Second)
+		return 1
 	}
 	sum.EksVersion = srvVersion.GitVersion
 	log.Infof("Running on Kubernetes %s", srvVersion.GitVersion)
@@ -101,7 +107,8 @@ func main() {
 		if err != nil {
 			log.Errorf("Failed to printSummary: %v", err)
 		}
-		mockSleep()
+		time.Sleep(sleepDuration * time.Second)
+		return 1
 	}
 	log.Infof("kube-dns service ClusterIP: %s", clusterIP)
 	cd.ClusterIP = clusterIP
@@ -115,7 +122,8 @@ func main() {
 		if err != nil {
 			log.Errorf("Failed to printSummary: %v", err)
 		}
-		mockSleep()
+		time.Sleep(sleepDuration * time.Second)
+		return 1
 	}
 	cd.EndpointsIP = eips
 	cd.NotReadyEndpoints = notReadyEIP
@@ -134,7 +142,8 @@ func main() {
 		if err != nil {
 			log.Errorf("Failed to printSummary: %v", err)
 		}
-		mockSleep()
+		time.Sleep(sleepDuration * time.Second)
+		return 1
 	}
 	if poVer == cd.RecommVersion {
 		log.Infof("Recommended coredns version %v is running", poVer)
@@ -152,13 +161,26 @@ func main() {
 	log.Infof("Checking logs of coredns pods for further debugging")
 	err = checkForErrorsInLogs(ns, &cd)
 	if err != nil {
-		log.Errorf("Failed to check logs of coredns pods and enable log plugin. Reason: %v\n", err)
+		log.Errorf("Failed to check logs of coredns pods and enable log plugin. Reason: %v", err)
+		sum.DiagError = fmt.Sprintf("Failed to check logs of coredns pods and enable log plugin. Reason: %v", err)
+		time.Sleep(sleepDuration * time.Second)
+		return 1
 	}
 
 	//copy content of coredns struct to sum struct
 	sum.Coredns = cd
 
-	clusterInfo := aws.DiscoverClusterInfo()
+	clusterInfo, err := aws.DiscoverClusterInfo()
+	if err != nil {
+		log.Errorf("Failed to check EKS cluster resources Reason: %v", err)
+		sum.DiagError = fmt.Sprintf("Failed to check EKS cluster resources Reason: %v", err)
+		err = sum.printSummary()
+		if err != nil {
+			log.Errorf("Failed to printSummary: %v", err)
+		}
+		time.Sleep(sleepDuration * time.Second)
+		return 1
+	}
 	sum.ClusterInfo = *clusterInfo
 	log.Debugf("Printing clusterInfo struct %+v", clusterInfo)
 
@@ -170,12 +192,14 @@ func main() {
 	err = sum.printSummary()
 	if err != nil {
 		log.Errorf("Failed to printSummary: %v", err)
+		time.Sleep(sleepDuration * time.Second)
+		return 1
 	}
 
 	log.Infof("DNS Diagnosis completed. Please check diagnosis report in %v file.", summaryFilePath)
 
-	mockSleep()
-	//time.Sleep(sleepDuration)
+	time.Sleep(sleepDuration * time.Second)
+	return 0
 
 }
 
@@ -195,9 +219,4 @@ func CreateKubeClient() (*kubernetes.Clientset, error) {
 		return nil, err
 	}
 	return Clientset, err
-}
-
-func mockSleep() {
-	time.Sleep(sleepDuration * time.Second)
-	//os.Exit(exitCode)
 }

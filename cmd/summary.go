@@ -50,10 +50,12 @@ func (ds *DiagnosisSummary) evalDiagResult() map[string]interface{} {
 func (ds *DiagnosisSummary) printSummary() error {
 	fmt.Println("Printing summary....")
 
-	//1. evaulate final diagnosis and add Result field in the DiagnosisSummary struct
-	resultAnalysis := ds.evalDiagResult()
-	if len(resultAnalysis) != 0 {
-		ds.Result = resultAnalysis
+	//1. evaulate final diagnosis(when diagnosis is complete) and add Result field in the DiagnosisSummary struct
+	if ds.IsDiagComplete {
+		resultAnalysis := ds.evalDiagResult()
+		if len(resultAnalysis) != 0 {
+			ds.Result = resultAnalysis
+		}
 	}
 
 	// 2. Create JSON Marshal

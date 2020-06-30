@@ -336,6 +336,7 @@ func verifyNaclRules(region string, vpcid string) (bool, error) {
 
 	var isPort53EgressAllowed bool
 
+	//TODO: remove nested-if statements
 	if len(nacls) > 0 {
 		for _, nacl := range nacls {
 			naclID, entries := nacl.NetworkAclId, nacl.Entries
@@ -385,39 +386,14 @@ func makeRange(min, max int64) []int64 {
 	return a
 }
 
-//DiscoverClusterInfo hkhkh
-func DiscoverClusterInfo() *ClusterInfo {
-	// wkr, err := getInstanceIdentityDocument()
-	// if err != nil {
-	// 	log.Errorf("Failed to fetch instanceID document")
-	// }
-	// log.Infof("Worker node Info: %v", wkr)
-	// log.Infof("Worker node Info: %+v", wkr.instanceIdentityDocument)
+//DiscoverClusterInfo checks EKS cluster resources
+//like ClusterSecurityGroup, NACL
+func DiscoverClusterInfo() (*ClusterInfo, error) {
 
-	// region := wkr.instanceIdentityDocument.Region
-	// log.Infof("Region is: %v", region)
-
-	// ec2Client, err := newEC2Client(region)
-	// fmt.Printf("EC2 Client: %v %T\n\n", ec2Client, ec2Client)
-
-	// log.Infof("Fetching Clustername...")
-	// clusterName, err := ec2Client.getClusterName(wkr.instanceIdentityDocument.InstanceID)
-	// if err != nil {
-	// 	log.Errorf(`Error finding required tag "kubernetes.io/cluster/clusterName" on EC2 instance : `, err)
-	// 	//return err
-	// }
-	// log.Infof("Clustername is :%v", clusterName)
-
-	// log.Infof("Fetching SGs attached to an EC2 instance")
-	// sgID, err := getAttachedSG()
-	// if err != nil {
-	// 	fmt.Printf("Unable to retrieve the SGs attached to the EC2 instance %v\n", err)
-	// }
-	// log.Infof("SGs attached to instance: %v", sgID)
-	//=============================
 	wkr1, err := getInstanceIdentityDocument()
 	if err != nil {
 		log.Errorf("Failed to fetch instanceID document")
+		return nil, err
 	}
 	log.Infof("Worker node Info: %v", wkr1)
 	log.Infof("Worker node Info: %+v", wkr1.InstanceIdentityDocument)
@@ -438,7 +414,7 @@ func DiscoverClusterInfo() *ClusterInfo {
 	clusterName, err := ec2Client.getClusterName(wkr1.InstanceIdentityDocument.InstanceID)
 	if err != nil {
 		log.Errorf(`Error finding required tag "kubernetes.io/cluster/clusterName" on EC2 instance : `, err)
-		//return err
+		return nil, err
 	}
 	wkr.ClusterName = clusterName
 	log.Infof("Clustername is :%v", clusterName)
@@ -447,7 +423,7 @@ func DiscoverClusterInfo() *ClusterInfo {
 	sgID, err := wkr.getAttachedSG()
 	if err != nil {
 		log.Printf("Unable to retrieve the SGs attached to the EC2 instance %v\n", err)
-		//return err
+		return nil, err
 	}
 	log.Infof("SGs attached to instance: %v", sgID)
 	wkr.SecurityGroupIds = sgID
@@ -457,7 +433,7 @@ func DiscoverClusterInfo() *ClusterInfo {
 	wkr.ClusterDetails, wkr.ClusterSGID, err = wkr.getClusterDetails(clusterName, region)
 	if err != nil {
 		log.Printf("Unable to retrieve cluster Details %v\n", err)
-		//return err
+		return nil, err
 	}
 	log.Infof("details: %v %T", *wkr.ClusterDetails, wkr.ClusterDetails)
 
@@ -465,7 +441,7 @@ func DiscoverClusterInfo() *ClusterInfo {
 	inbound, outbound, err := verifyClusterSGRules(wkr.ClusterSGID, region)
 	if err != nil {
 		log.Printf("Unable to evaluate the rules of Cluster SG %v\n", err)
-		//return err
+		return nil, err
 	}
 
 	//wkr.isClusterSGRulesCorrect = make(map[bool]string)
@@ -495,13 +471,13 @@ func DiscoverClusterInfo() *ClusterInfo {
 	isNaclOk, err := verifyNaclRules(region, *wkr.ClusterDetails.ResourcesVpcConfig.VpcId)
 	if err != nil {
 		log.Errorf("Unable to retrieve NACL rules %v\n", err)
-		//return err
+		return nil, err
 	}
 	wkr.NaclRulesCheck = isNaclOk
 	log.Infof("NACL rules are: %v", isNaclOk)
 
 	log.Infof("worker node struct: %+v", wkr)
 
-	return &wkr
+	return &wkr, nil
 
 }

@@ -7,10 +7,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// func clusterVersion() (string, error) {
-// 	return Clientset.ServerVersion()
-// }
-
 //getClusterIP
 func getClusterIP(ns string) (string, error) {
 	api := Clientset.CoreV1()
