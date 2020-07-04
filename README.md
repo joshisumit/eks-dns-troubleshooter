@@ -1,6 +1,7 @@
 # EKS DNS troubleshooter
 
-[![Go Report](https://goreportcard.com/badge/github.com/joshisumit/eks-dns-troubleshooter)](https://goreportcard.com/report/github.com/joshisumit/eks-dns-troubleshooter)  
+[![Go Report](https://goreportcard.com/badge/github.com/joshisumit/eks-dns-troubleshooter)](https://goreportcard.com/report/github.com/joshisumit/eks-dns-troubleshooter) &nbsp;
+![Docker Image CI](https://github.com/joshisumit/eks-dns-troubleshooter/workflows/Docker%20Image%20CI/badge.svg)
 
 [Docs](https://joshisumit.github.io/eks-dns-troubleshooter/)
 
