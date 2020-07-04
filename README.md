@@ -1,12 +1,12 @@
 # EKS DNS troubleshooter
 
-[![Go Report](https://goreportcard.com/badge/github.com/joshisumit/eks-dns-troubleshooter)](https://goreportcard.com/badge/github.com/joshisumit/eks-dns-troubleshooter)  
+[![Go Report](https://goreportcard.com/badge/github.com/joshisumit/eks-dns-troubleshooter)](https://goreportcard.com/report/github.com/joshisumit/eks-dns-troubleshooter)  
 
 [Docs](https://joshisumit.github.io/eks-dns-troubleshooter/)
 
 EKS DNS troubleshooter is an automated DNS troubleshooting utility for EKS cluster. It can be used to test, validate and troubleshoot DNS issues in EKS cluster.
 
-This tool scans all the cluster configuration, performs DNS resolution and identifies the issue, then generates a diagnosis report in JSON format.
+This tool runs as a pod in EKS cluster and scans all the cluster configuration, performs DNS resolution and identifies the issue, then generates a diagnosis report in JSON format.
 
 Spend less time in finding a root cause, more on Important Stuff!
 
@@ -27,7 +27,7 @@ Tool verifies the following scenarios to validate/troubleshoot DNS in EKS cluste
 1. Create an IAM policy and attach it to the Worker node IAM role.
 
 ```
-wget https://raw.githubusercontent.com/joshisumit/eks-dns-troubleshooter/master/deploy/iam-policy.json
+wget https://raw.githubusercontent.com/joshisumit/eks-dns-troubleshooter/v1.0.0/deploy/iam-policy.json
 
 aws iam put-role-policy --role-name $ROLE_NAME --policy-name EKSDnsDiagToolIAMPolicy --policy-document file://iam-policy.json
 ```
@@ -36,7 +36,7 @@ Here replace $ROLE_NAME with EKS worker node IAM role
 
 2. Deploy eks-dns-troubleshooter
 ```
-kubectl apply -f https://raw.githubusercontent.com/joshisumit/eks-dns-troubleshooter/master/deploy/eks-dns-troubleshooter.yaml
+kubectl apply -f https://raw.githubusercontent.com/joshisumit/eks-dns-troubleshooter/v1.0.0/deploy/eks-dns-troubleshooter.yaml
 ```
 
 3. Verify that pod is deployed

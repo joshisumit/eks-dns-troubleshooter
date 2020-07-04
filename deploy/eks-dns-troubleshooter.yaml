@@ -77,7 +77,7 @@ spec:
         app: eks-dns-troubleshooter
     spec:
       containers:
-      - image: sumitj/eks-dnshooter:latest
+      - image: sumitj/eks-dnshooter:v1.0.0
         name: eks-dns-troubleshooter
         env:
           - name: EKS_DNS_LOGLEVEL
