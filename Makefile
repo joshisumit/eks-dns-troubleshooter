@@ -9,7 +9,7 @@ export CGO_ENABLED = 0
 export GO111MODULE = on
 export GOPROXY = direct
 
-TAG=v1.0.0
+TAG=v1.1.0
 IMAGE_NAME=sumitj/eks-dnshooter
 ARCH=amd64
 OS=linux

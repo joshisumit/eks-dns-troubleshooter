@@ -1,142 +1,108 @@
 {
-    "diagnosisCompletion": true,
-    "diagnosisToolInfo": {
-      "release": "v1.0.0",
-      "repo": "git@github.com:joshisumit/eks-dns-troubleshooter.git",
-      "commit": "git-bc217f7"
-    },
-    "Analysis": {
-      "dnstest": "DNS resolution is working correctly in the cluster",
-      "naclRules": "naclRules are configured correctly...NOT blocking any DNS communication",
-      "securityGroupConfigurations": "securityGroups are configured correctly...not blocking any DNS communication"
-    },
-    "eksVersion": "v1.15.11-eks-af3caf",
-    "corednsChecks": {
-      "clusterIP": "10.100.0.10",
-      "endpointsIP": [
-        "192.168.27.238",
-        "192.168.5.208"
+  "diagnosisCompletion": true,
+  "diagnosisToolInfo": {
+    "release": "v1.1.0",
+    "repo": "https://github.com/joshisumit/eks-dns-troubleshooter",
+    "commit": "git-89606ea"
+  },
+  "Analysis": {
+    "dnstest": "DNS resolution is working correctly in the cluster",
+    "naclRules": "naclRules are configured correctly...NOT blocking any DNS communication",
+    "securityGroupConfigurations": "securityGroups are configured correctly...not blocking any DNS communication"
+  },
+  "eksVersion": "v1.16.8-eks-e16311",
+  "corednsChecks": {
+    "clusterIP": "10.100.0.10",
+    "endpointsIP": [
+      "192.168.10.9",
+      "192.168.17.192"
+    ],
+    "notReadyEndpoints": [],
+    "namespace": "kube-system",
+    "imageVersion": "v1.6.6",
+    "recommendedVersion": "v1.6.6",
+    "dnstestResults": {
+      "dnsResolution": "success",
+      "description": "tests the internal and external DNS queries against ClusterIP and two Coredns Pod IPs",
+      "domainsTested": [
+        "amazon.com",
+        "kubernetes.default.svc.cluster.local"
       ],
-      "notReadyEndpoints": [],
-      "namespace": "kube-system",
-      "imageVersion": "v1.6.6",
-      "recommendedVersion": "v1.6.6",
-      "dnstestResults": true,
-      "replicas": 2,
-      "corefile": ".:53 {\n    log\n    errors\n    health\n    kubernetes cluster.local in-addr.arpa ip6.arpa {\n      pods insecure\n      upstream\n      fallthrough in-addr.arpa ip6.arpa\n    }\n    prometheus :9153\n    forward . /etc/resolv.conf\n    cache 30\n    loop\n    reload\n    loadbalance\n}\n",
-      "resolvconf": {
-        "SearchPath": [
-          "default.svc.cluster.local",
-          "svc.cluster.local",
-          "cluster.local",
-          "eu-west-1.compute.internal"
-        ],
-        "Nameserver": [
-          "169.254.20.10"
-        ],
-        "Options": [
-          "ndots:5"
-        ],
-        "Ndots": 5
-      },
-      "hasNodeLocalCache": true
-    },
-    "eksClusterChecks": {
-      "securityGroupChecks": {
-        "IsClusterSGRuleCorrect": true,
-        "InboundRule": {
-          "isValid": "true"
+      "detailedResultForEachDomain": [
+        {
+          "domain": "amazon.com",
+          "server": "10.100.0.10:53",
+          "result": "success"
         },
-        "OutboundRule": {
-          "isValid": "true"
+        {
+          "domain": "amazon.com",
+          "server": "192.168.10.9:53",
+          "result": "success"
+        },
+        {
+          "domain": "amazon.com",
+          "server": "192.168.17.192:53",
+          "result": "success"
+        },
+        {
+          "domain": "kubernetes.default.svc.cluster.local",
+          "server": "10.100.0.10:53",
+          "result": "success"
+        },
+        {
+          "domain": "kubernetes.default.svc.cluster.local",
+          "server": "192.168.10.9:53",
+          "result": "success"
+        },
+        {
+          "domain": "kubernetes.default.svc.cluster.local",
+          "server": "192.168.17.192:53",
+          "result": "success"
         }
-      },
-      "naclRulesCheck": true,
-      "region": "eu-west-1",
-      "securityGroupIds": [
-        "eksctl-ekstest-cluster-ClusterSharedNodeSecurityGroup-1IZCQSZ7P0UXK",
-        "eksctl-ekstest-nodegroup-nodelocal-ng-SG-YC8V65Q46LJX"
+      ]
+    },
+    "replicas": 2,
+    "podNames": [
+      "coredns-76f4cb57b4-25x8d",
+      "coredns-76f4cb57b4-2vs9w"
+    ],
+    "corefile": ".:53 {\n    log\n    errors\n    health\n    kubernetes cluster.local in-addr.arpa ip6.arpa {\n      pods insecure\n      upstream\n      fallthrough in-addr.arpa ip6.arpa\n    }\n    prometheus :9153\n    forward . /etc/resolv.conf\n    cache 30\n    loop\n    reload\n    loadbalance\n}\n",
+    "resolvconf": {
+      "SearchPath": [
+        "default.svc.cluster.local",
+        "svc.cluster.local",
+        "cluster.local",
+        "eu-west-2.compute.internal"
       ],
-      "clusterName": "ekstest",
-      "clusterSecurityGroup": "sg-0c5a36ce2a6d9478e",
-      "instanceIdentityDocument": {
-        "devpayProductCodes": null,
-        "marketplaceProductCodes": null,
-        "availabilityZone": "eu-west-1c",
-        "privateIp": "192.168.94.187",
-        "version": "2017-09-30 ",
-        "region": "eu-west-1",
-        "instanceId": "i-08cec7471234560b5",
-        "billingProducts": null,
-        "instanceType": "t3.large",
-        "accountId": "123456789012",
-        "pendingTime": "0001-01-01T00:00:00Z",
-        "imageId": "ami-0f9e9442edcd2faa2 ",
-        "kernelId": "",
-        "ramdiskId": "",
-        "architecture": "x86_64"
-      },
-      "clusterDetails": {
-        "Arn": "arn:aws:eks:eu-west-1:123456789012:cluster/ekstest",
-        "CertificateAuthority": {
-          "Data": "LS0tLS1CRUdJTiBDTT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
-        },
-        "ClientRequestToken": null,
-        "CreatedAt": "2019-12-16T19:16:56Z",
-        "EncryptionConfig": null,
-        "Endpoint": "https://6D9A445312345678901234.sk1.eu-west-1.eks.amazonaws.com",
-        "Identity": {
-          "Oidc": {
-            "Issuer": "https://oidc.eks.eu-west-1.amazonaws.com/id/6D9A445312345678901234"
-          }
-        },
-        "Logging": {
-          "ClusterLogging": [
-            {
-              "Enabled": true,
-              "Types": [
-                "api",
-                "audit",
-                "scheduler"
-              ]
-            },
-            {
-              "Enabled": false,
-              "Types": [
-                "authenticator",
-                "controllerManager"
-              ]
-            }
-          ]
-        },
-        "Name": "ekstest",
-        "PlatformVersion": "eks.2",
-        "ResourcesVpcConfig": {
-          "ClusterSecurityGroupId": "sg-0c5a36ce2a6d9478e",
-          "EndpointPrivateAccess": true,
-          "EndpointPublicAccess": true,
-          "PublicAccessCidrs": [
-            "0.0.0.0/0"
-          ],
-          "SecurityGroupIds": [
-            "sg-09f1a4e5b0354f30a"
-          ],
-          "SubnetIds": [
-            "subnet-00de54436e27d1aca",
-            "subnet-079dd819d880c94e9",
-            "subnet-0702e6a0bf3755bd0",
-            "subnet-0cdacba7c6aedbf9f",
-            "subnet-0cf4f0cd18486953b",
-            "subnet-0fef11a06f26811d4"
-          ],
-          "VpcId": "vpc-053567008548ceb24"
-        },
-        "RoleArn": "arn:aws:iam::123456789012:role/eksctl-ekstest-cluster-ServiceRole-7EJONRZBLZH0",
-        "Status": "ACTIVE",
-        "Tags": {
-          "EKS-Cluster-Name": "ekstest"
-        },
-        "Version": "1.15"
-      }
+      "Nameserver": [
+        "10.100.0.10"
+      ],
+      "Options": [
+        "ndots:5"
+      ],
+      "Ndots": 5
+    },
+    "errorCheckInCorednsLogs": {
+      "errorsInLogs": false
     }
+  },
+  "eksClusterChecks": {
+    "securityGroupChecks": {
+      "IsClusterSGRuleCorrect": true,
+      "InboundRule": {
+        "isValid": "true"
+      },
+      "OutboundRule": {
+        "isValid": "true"
+      }
+    },
+    "naclRulesCheck": true,
+    "region": "eu-west-2",
+    "securityGroupIds": [
+      "eksctl-dev-cluster-nodegroup-ng-1-SG-40FRGTVAFSPT",
+      "eksctl-dev-cluster-cluster-ClusterSharedNodeSecurityGroup-1PISH2DINONDS"
+    ],
+    "clusterName": "dev-cluster",
+    "clusterSecurityGroup": "sg-0529eb51ffbae7373"
   }
+}
