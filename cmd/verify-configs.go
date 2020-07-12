@@ -129,7 +129,7 @@ func (cd *Coredns) testDNS() {
 
 	//2. Match nameserver in /etc/resolv.conf with ClusterIP ->it should match
 	//from the nameserver IP -> check its coredns or nodeLocalDNSCache
-	dnstest.Description = "tests the DNS queries against ClusterIP and two Coredns Pod IPs"
+	dnstest.Description = "tests the internal and external DNS queries against ClusterIP and two Coredns Pod IPs"
 
 	if rc.Nameserver[0] == cd.ClusterIP {
 		log.Infof("Pod's nameserver is matching to ClusterIP: %s", rc.Nameserver[0])
@@ -168,9 +168,9 @@ func (cd *Coredns) testDNS() {
 		}
 	}
 	if successCount != len(dnstest.DnsTestResultForDomains) {
-		dnstest.DnsResolution = "Failed"
+		dnstest.DnsResolution = "failed"
 	}
-	dnstest.DnsResolution = "Success"
+	dnstest.DnsResolution = "success"
 
 	cd.Dnstest = *dnstest
 	//cd.Dnstest = success

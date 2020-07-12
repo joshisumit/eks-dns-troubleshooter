@@ -30,7 +30,7 @@ type DnsTestResultForDomain struct {
 	DomainName string   `json:"domain"`
 	Server     string   `json:"server"`
 	Result     string   `json:"result"`
-	Answer     []net.IP `json:"answer"`
+	Answer     []string `json:"answer,omitempty"`
 }
 
 type Dnstest struct {
@@ -56,6 +56,7 @@ func lookupIP(host string, server []string) *DnsTestResultForDomain {
 	resolver.RetryTimes = 3
 
 	//Perform each DNS query for 3 times
+	answer := make([]string, 0)
 	for i := 1; i <= 3; i++ {
 		log.Infof("DNS query: %s Servers: %v", host, srv)
 		ip, err := resolver.LookupHost(host)
@@ -65,8 +66,12 @@ func lookupIP(host string, server []string) *DnsTestResultForDomain {
 			continue
 		}
 		s++
-		log.Infof("Answer: %s A %s", host, ip)
 	}
+
+	for _, ipaddr := range ip {
+		answer = append(answer, ipaddr.String())
+	}
+	log.Infof("Answer: %s A %s %v", host, ip, answer)
 
 	log.Debugf("success: %d fail: %d domain: %s Servers: %s", s, f, host, srv)
 	if f > 0 {
@@ -77,7 +82,7 @@ func lookupIP(host string, server []string) *DnsTestResultForDomain {
 		result = "success"
 	}
 
-	testres.DomainName, testres.Server, testres.Result, testres.Answer = host, srv[0], result, ip
+	testres.DomainName, testres.Server, testres.Result, testres.Answer = host, srv[0], result, answer
 
 	return &testres
 }

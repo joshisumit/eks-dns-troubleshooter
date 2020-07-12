@@ -15,14 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type corednsPatchValue struct {
-	Data *corefileValue `json:"data"`
-}
-
-type corefileValue struct {
-	Corefile string `json:"Corefile"`
-}
-
 func getCorefile(ns string) (string, error) {
 	api := Clientset.CoreV1()
 
