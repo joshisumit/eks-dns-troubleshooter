@@ -30,8 +30,10 @@ func (ds *DiagnosisSummary) evalDiagResult() map[string]interface{} {
 	//result:{"dnstest":"","awsSGChecks":"","awsNaclChecks":"","corednsInfo":"",}
 	res := make(map[string]interface{})
 
-	if ds.Coredns.Dnstest {
+	if ds.Coredns.Dnstest.DnsResolution == "success" {
 		res["dnstest"] = "DNS resolution is working correctly in the cluster"
+	} else {
+		res["dnstest"] = "DNS resolution is NOT working correctly in the cluster, DNS queries are failing"
 	}
 	if ds.ClusterInfo.NaclRulesCheck {
 		res["naclRules"] = "naclRules are configured correctly...NOT blocking any DNS communication"

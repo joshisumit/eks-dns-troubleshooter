@@ -18,10 +18,9 @@ Tool verifies the following scenarios to validate/troubleshoot DNS in EKS cluste
 - Verify coredns service (i.e. kube-dns) exist and its endpoints.
 - Performs DNS resolution against CoreDNS ClusterIP (e.g. 10.100.0.10) and individual Coredns pod IPs.
 - Detects if Node Local DNS cache is being used.
-- Verify that the inter-node communication is not blocked by a Security Group.
 - Verify EKS Cluster Security Group is configured correctly (Incorrect configs can prevent communication with coredns pods).
 - Verify Network Access Control List (NACL) rules are not blocking outbound TCP and UDP access on port 53 (which is required for DNS resolution).
-- Enable `log` plugin in Coredns Configmap for debugging and checks for errors in the Coredns pod logs
+- Checks for errors in the Coredns pod logs (Only If `log` plugin is enabled in Coredns Configmap).
 
 ## Usage
 
@@ -221,6 +220,7 @@ Sample diagnosis report in JSON format looks similar to the following:
 
 ## Notes
 - Tool tested for EKS version 1.14 onwards
+- In order to check errors in coredns pod logs, make sure to enable `log` plugin in the coredns ConfigMap before running the tool.
 - Two files are generated inside a pod:
   1.  `/var/log/eks-dns-tool.log` - Tool execution logs which can be used for debugging purpose
   2.  `/var/log/eks-dns-diag-summary.json` - Final Diagnosis result in JSON format

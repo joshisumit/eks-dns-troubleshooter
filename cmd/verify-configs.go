@@ -109,15 +109,19 @@ func checkPodVersion(ns string, cd *Coredns) (string, []string, int32, error) {
 //It tests the DNS queries against ClusterIP and individual PodIPs (i.e endpoint IPs)
 //returns (bool, []byte, error)
 func (cd *Coredns) testDNS() {
-	var success bool
+	var successCount int
 
 	//1. readEtcResolvConf -> compare nameserver with ClusterIP
 	//nameserver either should be coredns clusterIP or nodeLocalcache DNS IP
 	rc := &ResolvConf{}
+	dnstest := &Dnstest{}
+
 	err := rc.readResolvConf()
 	if err != nil {
 		log.Errorf("Failed to read /etc/resolv.conf file: %s", err)
-		cd.Dnstest = false
+		dnstest.DnsResolution = "Failed"
+		//cd.Dnstest = false
+		cd.Dnstest = *dnstest
 		return
 	}
 	cd.ResolvConf = *rc
@@ -125,6 +129,8 @@ func (cd *Coredns) testDNS() {
 
 	//2. Match nameserver in /etc/resolv.conf with ClusterIP ->it should match
 	//from the nameserver IP -> check its coredns or nodeLocalDNSCache
+	dnstest.Description = "tests the DNS queries against ClusterIP and two Coredns Pod IPs"
+
 	if rc.Nameserver[0] == cd.ClusterIP {
 		log.Infof("Pod's nameserver is matching to ClusterIP: %s", rc.Nameserver[0])
 	} else if rc.Nameserver[0] == "169.254.20.10" {
@@ -140,35 +146,34 @@ func (cd *Coredns) testDNS() {
 	//If you make query for "kuberenetes" then query will be sent to COREDNS as "kubernetes."
 	//Due to that used FQDN for kubernetes like kubernetes.default.svc.cluster.local
 	domains := []string{"amazon.com", "kubernetes.default.svc.cluster.local"}
+	dnstest.DomainsTested = domains
 
 	nameservers := make([]string, 0, 3)
 	nameservers = append(nameservers, rc.Nameserver...)
 	nameservers = append(nameservers, cd.EndpointsIP[:2]...) //select only 2 endpoints
 
-	// queries := make(map[string][]string)
-
-	// queries = map[string][]string{
-	// 	"amazon.com":         nameservers,
-	// 	"kubernetes.default": nameservers,
-	// }
-
-	// for dom, ns := range queries {
-	// 	success = lookupIP(dom, []string{ns})
-	// }
-
 	//tests each DOMAIN against 3 NAMESERVERS (i.e. 1 ClusterIP and 2 COREDNS ENDPOINTS)
+	dnstest.DnsTestResultForDomains = make([]DnsTestResultForDomain, 0)
+
 	for _, dom := range domains {
 		for _, ns := range nameservers {
-			success = lookupIP(dom, []string{ns})
-			if success {
-				log.Infof("DNS queries succeeded for domain: %s server: %v", dom, ns)
-			} else {
-				log.Errorf("DNS queries failed for domain: %s server: %v", dom, ns)
-			}
+			result := lookupIP(dom, []string{ns})
+			dnstest.DnsTestResultForDomains = append(dnstest.DnsTestResultForDomains, *result)
 		}
 	}
 
-	cd.Dnstest = success
-	log.Debugf("DNS test completed. Success: %t %t", cd.Dnstest, success)
+	for _, res := range dnstest.DnsTestResultForDomains {
+		if res.Result == "success" {
+			successCount++
+		}
+	}
+	if successCount != len(dnstest.DnsTestResultForDomains) {
+		dnstest.DnsResolution = "Failed"
+	}
+	dnstest.DnsResolution = "Success"
+
+	cd.Dnstest = *dnstest
+	//cd.Dnstest = success
+	log.Debugf("DNS test completed: %v *dnstest: %v", cd.Dnstest, *dnstest)
 
 }

@@ -50,8 +50,8 @@ type ClusterInfo struct {
 	ClusterName              string                                  `json:"clusterName"`
 	ClusterSGID              string                                  `json:"clusterSecurityGroup"`
 	TagList                  []map[string]string                     `json:"tagList,omitempty"`
-	InstanceIdentityDocument ec2metadata.EC2InstanceIdentityDocument `json:"instanceIdentityDocument"`
-	ClusterDetails           *eks.Cluster                            `json:"clusterDetails"`
+	InstanceIdentityDocument ec2metadata.EC2InstanceIdentityDocument `json:"instanceDetails"`
+	ClusterDetails           *eks.Cluster                            `json:"-"`
 }
 
 func getInstanceIdentityDocument() (*ClusterInfo, error) {
