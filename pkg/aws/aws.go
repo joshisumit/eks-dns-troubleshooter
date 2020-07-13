@@ -19,17 +19,10 @@ import (
 const (
 	maxRetries       = 10
 	resourceID       = "resource-id"
-	resourceKey      = "key"
 	tagKeyMatchValue = "kubernetes.io/cluster/"
 )
 
-type ec2MetdataClient struct {
-	//instanceIdentityDocument ec2metadata.EC2InstanceIdentityDocument
-	client ec2metadata.EC2Metadata
-}
-
 type ec2Client struct {
-	//client ec2.EC2
 	ec2ServiceClient ec2iface.EC2API
 }
 
@@ -50,8 +43,8 @@ type ClusterInfo struct {
 	ClusterName              string                                  `json:"clusterName"`
 	ClusterSGID              string                                  `json:"clusterSecurityGroup"`
 	TagList                  []map[string]string                     `json:"tagList,omitempty"`
-	InstanceIdentityDocument ec2metadata.EC2InstanceIdentityDocument `json:"instanceIdentityDocument"`
-	ClusterDetails           *eks.Cluster                            `json:"clusterDetails"`
+	InstanceIdentityDocument ec2metadata.EC2InstanceIdentityDocument `json:"-"`
+	ClusterDetails           *eks.Cluster                            `json:"-"`
 }
 
 func getInstanceIdentityDocument() (*ClusterInfo, error) {
@@ -214,7 +207,7 @@ func (w *ClusterInfo) getClusterDetails(clusterName string, region string) (*eks
 
 // getSecurityGrupRules returns SG rules based on sg-id or sg-name
 func getSecurityGrupRules(sgFilter string, region string) (*ec2.SecurityGroup, error) {
-	ec2Client, err := newEC2Client(region)
+	ec2Client, _ := newEC2Client(region)
 	fmt.Printf("EC2 Client: %v %T\n\n", ec2Client, ec2Client)
 
 	//input := &ec2.DescribeSecurityGroupsInput{}
@@ -300,7 +293,7 @@ func verifyClusterSGRules(clusterSGID string, region string) (bool, bool, error)
 // requires IAM policy
 func verifyNaclRules(region string, vpcid string) (bool, error) {
 
-	ec2Client, err := newEC2Client(region)
+	ec2Client, _ := newEC2Client(region)
 
 	//    NetworkAclIds: []*string{
 	//aws.String("acl-5fb85d36"),
@@ -413,11 +406,12 @@ func DiscoverClusterInfo() (*ClusterInfo, error) {
 	log.Infof("Fetching Clustername...")
 	clusterName, err := ec2Client.getClusterName(wkr1.InstanceIdentityDocument.InstanceID)
 	if err != nil {
-		log.Errorf(`Error finding required tag "kubernetes.io/cluster/clusterName" on EC2 instance : `, err)
+		log.Errorf("Error finding required tag %q on EC2 instance: %v", "kubernetes.io/cluster/clusterName", err)
 		return nil, err
 	}
 	wkr.ClusterName = clusterName
-	log.Infof("Clustername is :%v", clusterName)
+	wkr.Region = region
+	log.Infof("Clustername is: %v", clusterName)
 
 	log.Infof("Fetching SGs attached to an EC2 instance")
 	sgID, err := wkr.getAttachedSG()
